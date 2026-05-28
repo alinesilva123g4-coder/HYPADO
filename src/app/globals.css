@@ -1,0 +1,406 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --muted: #6b6b6b;
+  --line: #e5e5e5;
+  --surface: #f6f6f6;
+
+  /* A marca é preto e branco. Os tokens "clay/ochre/ink/sand" sobreviveram
+     como nomes só pra manter as classes existentes (eyebrow, hatch-rule,
+     clay-stamp, ink-section, accent-underline) funcionando — todos agora
+     apontam pra preto puro ou tonalidades neutras de cinza. Sem terra,
+     sem laranja queimado, sem sol amarelo. */
+  --clay: #0a0a0a;
+  --clay-soft: #2a2a2a;
+  --ochre: #0a0a0a;
+  --ink: #0a0a0a;
+  --sand: #f6f6f6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-clay: var(--clay);
+  --color-clay-soft: var(--clay-soft);
+  --color-ochre: var(--ochre);
+  --color-ink: var(--ink);
+  --color-sand: var(--sand);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-archivo);
+  --font-gothic: var(--font-pirata);
+}
+
+:root {
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 120px;
+}
+
+:root {
+  --header-h-base: 120px;
+  --header-h-scrolled: 72px;
+}
+@media (min-width: 768px) {
+  :root {
+    --header-h-base: 132px;
+    --header-h-scrolled: 76px;
+  }
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Page transition — aplicada pelo template.tsx em cada navegação */
+@keyframes hp-page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-transition {
+  animation: hp-page-in 320ms var(--ease-out-expo) both;
+  will-change: opacity, transform;
+}
+
+/* Reveal on mount — para cards e listas */
+@keyframes hp-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rise {
+  animation: hp-rise 600ms var(--ease-out-expo) both;
+}
+
+.brand-mark {
+  font-family: var(--font-archivo), Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+/* Acento gótico — só em drops, manifestos e títulos hero pontuais.
+   Nunca em UI funcional, nav, botão, body, label. */
+.gothic {
+  font-family: var(--font-pirata), "UnifrakturMaguntia", serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 0.9;
+}
+
+.input-base {
+  width: 100%;
+  background: var(--background);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--foreground);
+  transition: border-color 0.15s ease;
+}
+.input-base::placeholder {
+  color: var(--muted);
+}
+.input-base:focus {
+  outline: none;
+  border-color: var(--foreground);
+}
+
+/* Contorno branco interno em CTAs/botões da marca.
+   Aplicado via classe .btn-outline — funciona em qualquer fundo,
+   mas só aparece visualmente sobre superfícies escuras/coloridas. */
+.btn-outline {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.55);
+}
+.btn-outline:hover {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.85);
+}
+
+/* Contorno animado — assinatura visual da marca em CTAs.
+   Duas camadas: ::before (linha base sempre visível) + ::after (arco que percorre).
+   Usa currentColor pra adaptar a cor ao texto do botão (branco em CTA preto, preto em ghost). */
+@property --trace-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.btn-trace {
+  position: relative;
+  isolation: isolate;
+  /* Profundidade 3D sutil: highlight no topo + sombra embaixo. */
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, currentColor 12%, transparent),
+    inset 0 -1px 0 0 color-mix(in srgb, #000 18%, transparent);
+  /* Brilho fino diagonal varrendo a superfície. */
+  background-image: linear-gradient(
+    115deg,
+    transparent 48%,
+    color-mix(in srgb, currentColor 10%, transparent) 49.5%,
+    color-mix(in srgb, currentColor 14%, transparent) 50%,
+    color-mix(in srgb, currentColor 10%, transparent) 50.5%,
+    transparent 52%
+  );
+  background-size: 260% 100%;
+  background-position: -130% 0;
+  background-repeat: no-repeat;
+  animation: btn-shine 5s linear infinite;
+}
+
+@keyframes btn-shine {
+  0%   { background-position: -130% 0; }
+  45%  { background-position: 230% 0; }
+  100% { background-position: 230% 0; }
+}
+
+/* Arco fino percorrendo o perímetro interno — único elemento animado de contorno. */
+.btn-trace::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  box-sizing: border-box;
+  border-radius: calc(0.375rem - 3px);
+  padding: 1px;
+  background: conic-gradient(
+    from var(--trace-angle),
+    transparent 0deg,
+    transparent 240deg,
+    color-mix(in srgb, currentColor 45%, transparent) 280deg,
+    transparent 320deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+  animation: btn-trace-spin 3.6s linear infinite;
+}
+
+.btn-trace:hover::after,
+.btn-trace:focus-visible::after {
+  animation-duration: 2.4s;
+}
+
+@keyframes btn-trace-spin {
+  to { --trace-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-trace::after {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}
+
+/* Loading states */
+@keyframes hp-logo-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.03); }
+}
+@keyframes hp-logo-breathe {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+@keyframes hp-rail-dot {
+  0%   { left: 0%;   opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+@keyframes hp-rail-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes hp-veil-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes hp-caption-rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 0.55; transform: translateY(0); }
+}
+@keyframes hp-load-sweep {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(110%); }
+}
+@keyframes hp-load-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes hp-load-words {
+  0%, 28%  { transform: translateY(0%); }
+  33%, 61% { transform: translateY(-33.333%); }
+  66%, 94% { transform: translateY(-66.666%); }
+  100%     { transform: translateY(-100%); }
+}
+@keyframes hp-load-tick {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 0.55; }
+}
+@keyframes hp-load-mask {
+  0%   { transform: translateY(100%); }
+  60%  { transform: translateY(-100%); }
+  100% { transform: translateY(-100%); }
+}
+@keyframes hp-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes hp-toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+@keyframes hp-sheet-in {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes hp-cart-pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.45); }
+  100% { transform: scale(1); }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface) 0%,
+    color-mix(in srgb, var(--line) 70%, transparent) 50%,
+    var(--surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: hp-shimmer 1.6s linear infinite;
+  border-radius: 6px;
+}
+
+/* Smooth image reveal */
+@keyframes hp-img-in {
+  from { opacity: 0; transform: scale(1.02); }
+  to   { opacity: 1; transform: scale(1); }
+}
+img, video {
+  animation: hp-img-in 480ms var(--ease-out-expo) both;
+}
+
+/* Tema escuro local — usado na seção de avaliações.
+   Inverte os tokens de cor pra que as classes existentes
+   (bg-background, text-foreground, border-line, etc) virem automaticamente. */
+.theme-invert {
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --muted: rgba(255, 255, 255, 0.6);
+  --line: rgba(255, 255, 255, 0.16);
+  --surface: rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================================
+   IDENTIDADE NORDESTINA — texturas e acentos
+   Princípio: complementam o preto/branco. Acento = clay (barro).
+   Tudo isolado e removível; nada vira tema global.
+   ============================================================ */
+
+/* Eyebrow com marcador de barro — substitui o eyebrow cinza puro
+   quando a seção quer um toque de calor. O traço curto é a "talha". */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--muted);
+}
+/* Régua de xilogravura — divisor de talhe fino em diagonal.
+   Evoca o hachurado da gravura sem virar ruído. */
+.hatch-rule {
+  height: 6px;
+  width: 100%;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--clay) 55%, transparent) 0,
+    color-mix(in srgb, var(--clay) 55%, transparent) 1px,
+    transparent 1px,
+    transparent 5px
+  );
+}
+
+/* Seção em tinta quente (xilogravura) — fundo preto-marrom + grão.
+   Isolada: o grão vive num ::before contido, não na página inteira. */
+.ink-section {
+  position: relative;
+  isolation: isolate;
+  background: var(--ink);
+  color: #fff;
+}
+.ink-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.5;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  pointer-events: none;
+}
+/* Brilho de sol baixo sobre a tinta — calor sutil de ochre/clay. */
+.ink-section::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 90% at 18% 0%,
+    color-mix(in srgb, var(--ochre) 22%, transparent) 0%,
+    transparent 55%
+  );
+}
+
+/* Borda superior de cordel — talhe de barro fino marcando capítulo. */
+.cordel-edge {
+  border-top: 2px solid var(--clay);
+}
+
+/* Link/destaque com sublinhado de barro que cresce no hover. */
+.accent-underline {
+  background-image: linear-gradient(var(--clay), var(--clay));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 1.5px;
+  transition: background-size 0.3s var(--ease-out-expo);
+}
+.accent-underline:hover {
+  background-size: 100% 2.5px;
+}
+
+/* Selo editorial — número/índice em bloco de barro (capa de cordel). */
+.clay-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--clay);
+  color: #fff;
+  font-family: var(--font-archivo), Impact, sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
