@@ -32,6 +32,14 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# netlify (build local — NÃO commitar, é gerado no deploy)
+.netlify/
+
+# artefatos de trabalho (não fazem parte do app publicado)
+_backup-assets/
+hero-source-original.mp4
 
 # vercel
 .vercel
@@ -44,3 +52,5 @@ next-env.d.ts
 prisma/dev.db
 prisma/*.db
 prisma/*.db-journal
+
+.vercel

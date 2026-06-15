@@ -31,7 +31,7 @@ export function ProductCard({
       href={`/produto/${slug}`}
       className="group block transition-transform duration-200 ease-out active:scale-[0.97]"
     >
-      <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface rounded-md">
+      <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface">
         <Image
           src={image}
           alt={name}
@@ -49,28 +49,55 @@ export function ProductCard({
             className="hidden md:block object-cover scale-[1.04] opacity-0 transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:opacity-100 group-hover:scale-100"
           />
         )}
-        {/* Talho de barro — cresce da esquerda no hover (desktop). Tátil, sem tag. */}
+
+        {/* Moldura editorial — borda fina some no hover dando lugar ao CTA */}
         <span
           aria-hidden
-          className="hidden md:block absolute bottom-0 left-0 h-[3px] w-full origin-left scale-x-0 bg-clay transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-x-100"
+          className="pointer-events-none absolute inset-0 border border-black/0 md:border-black/10 transition-colors duration-300 group-hover:border-black/0"
         />
+
+        {/* Faixa editorial subindo do rodapé (desktop) — substitui o traço fino */}
+        <div
+          aria-hidden
+          className="hidden md:flex absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] bg-ink text-white items-center justify-between px-3 py-2"
+        >
+          <span className="brand-mark text-[10px] uppercase tracking-[0.22em]">
+            Ver peça
+          </span>
+          <span className="text-sm leading-none" aria-hidden>
+            →
+          </span>
+        </div>
       </div>
-      <div className="mt-2 md:mt-3 flex items-start justify-between gap-2 md:gap-4">
-        <div className="min-w-0">
-          <div className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted transition-colors duration-300 group-hover:text-clay">
-            {category}
-          </div>
-          <div className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium truncate">{name}</div>
-          <div className="mt-1 md:mt-1.5 flex items-center gap-1 md:gap-1.5">
+
+      <div className="mt-3 md:mt-4">
+        {/* Eyebrow com marcador de barro */}
+        <div className="eyebrow text-[9px] md:text-[10px] text-muted transition-colors duration-300 group-hover:text-foreground">
+          {category}
+        </div>
+
+        {/* Nome — editorial, duas linhas máx */}
+        <h3 className="brand-mark mt-1.5 md:mt-2 text-[13px] md:text-[15px] leading-[1.15] uppercase tracking-[0.01em] line-clamp-2 min-h-[2.3em]">
+          {name}
+        </h3>
+
+        {/* Régua hachurada — divisor tátil */}
+        <div className="hatch-rule mt-2 md:mt-3" />
+
+        {/* Rodapé: rating à esquerda, preço à direita */}
+        <div className="mt-2 md:mt-2.5 flex items-end justify-between gap-2">
+          <div className="flex items-center gap-1 md:gap-1.5 min-h-[14px]">
             <StarRating rating={hasRating ? rating! : 0} size="sm" />
             {hasRating && (
-              <span className="text-[9px] md:text-[10px] text-[#F5B400] tabular-nums">
+              <span className="text-[9px] md:text-[10px] text-muted tabular-nums">
                 ({reviewCount})
               </span>
             )}
           </div>
+          <div className="brand-mark text-[13px] md:text-[15px] tabular-nums whitespace-nowrap leading-none">
+            {formatBRL(priceCents)}
+          </div>
         </div>
-        <div className="text-xs md:text-sm tabular-nums whitespace-nowrap">{formatBRL(priceCents)}</div>
       </div>
     </Link>
   );

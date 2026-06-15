@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
+
+// Quantas avaliações a mesma pessoa pode deixar no MESMO produto por dia.
+const MAX_PER_PERSON_PER_PRODUCT = 2;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  const rl = rateLimit({ key: `reviews:${ip}`, limit: 3, windowMs: 60_000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
   try {
     const data = await req.json();
     const rating = Number(data.rating);
@@ -10,6 +19,7 @@ export async function POST(req: Request) {
     const title = String(data.title ?? "").trim() || null;
     const city = String(data.city ?? "").trim() || null;
     const productId = String(data.productId ?? "").trim();
+    const sessionId = String(data.sessionId ?? "").trim();
     const mediaArr = Array.isArray(data.media) ? data.media : [];
     const media = mediaArr
       .filter(
@@ -29,6 +39,45 @@ export async function POST(req: Request) {
     }
     if (body.length < 4 || body.length > 1200) {
       return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    }
+
+    // 2ª camada — limite por sessão do navegador no mesmo produto (reforço rápido).
+    const sessKey = sessionId || ip;
+    const rlProd = rateLimit({
+      key: `reviews:prod:${productId}:${sessKey}`,
+      limit: MAX_PER_PERSON_PER_PRODUCT,
+      windowMs: DAY_MS,
+    });
+    if (!rlProd.ok) {
+      return NextResponse.json({ error: "already_reviewed" }, { status: 429 });
+    }
+
+    const since = new Date(Date.now() - DAY_MS);
+
+    // 3ª camada — guarda no banco: mesma pessoa (nome) já avaliou demais este produto.
+    const recentSameAuthor = await prisma.review.count({
+      where: {
+        productId,
+        createdAt: { gte: since },
+        authorName: { equals: authorName, mode: "insensitive" },
+      },
+    });
+    if (recentSameAuthor >= MAX_PER_PERSON_PER_PRODUCT) {
+      return NextResponse.json({ error: "already_reviewed" }, { status: 429 });
+    }
+
+    // 4ª camada — anti-duplicado: mesmo texto no mesmo produto nos últimos 10 min
+    // (cobre duplo-clique e cópia/cola repetida).
+    const dup = await prisma.review.findFirst({
+      where: {
+        productId,
+        body,
+        createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },
+      },
+      select: { id: true },
+    });
+    if (dup) {
+      return NextResponse.json({ error: "duplicate" }, { status: 409 });
     }
 
     const review = await prisma.review.create({

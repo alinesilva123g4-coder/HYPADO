@@ -12,6 +12,14 @@ const startOfDay = (d: Date) => {
   return x;
 };
 
+const STATUS_LABEL_PT: Record<string, string> = {
+  pending: "pendente",
+  paid: "pago",
+  shipped: "enviado",
+  delivered: "entregue",
+  canceled: "cancelado",
+};
+
 function pctChange(curr: number, prev: number): number | null {
   if (prev === 0) return curr === 0 ? 0 : null;
   return ((curr - prev) / prev) * 100;
@@ -568,7 +576,25 @@ function InsightCards({ s }: { s: Stats }) {
 // ---------- page ----------
 
 export default async function AdminDashboard() {
-  const s = await getStats();
+  let s: Stats;
+  try {
+    s = await getStats();
+  } catch (err) {
+    return (
+      <div className="mx-auto mt-10 max-w-lg rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+        <h1 className="text-lg font-semibold">Não consegui carregar o painel agora</h1>
+        <p className="mt-2 text-sm leading-snug">
+          O banco demorou demais pra responder. Geralmente é passageiro —
+          atualize a página em alguns segundos. Se persistir, confira o
+          <code className="mx-1 rounded bg-amber-100 px-1">connection_limit</code>
+          do banco no Vercel.
+        </p>
+        <p className="mt-3 text-[11px] text-amber-700/80 break-all">
+          {err instanceof Error ? err.message : String(err)}
+        </p>
+      </div>
+    );
+  }
 
   const dailyRevSpark = s.series.map((p) => p.revenue);
   const dailyOrdersSpark = s.series.map((p) => p.orders);
@@ -697,9 +723,11 @@ export default async function AdminDashboard() {
                 const statusTone =
                   o.status === "pending"
                     ? "bg-amber-100 text-amber-800"
-                    : o.status === "paid" || o.status === "confirmed"
+                    : o.status === "paid" || o.status === "delivered"
                     ? "bg-emerald-100 text-emerald-800"
-                    : o.status === "cancelled"
+                    : o.status === "shipped"
+                    ? "bg-indigo-100 text-indigo-800"
+                    : o.status === "canceled"
                     ? "bg-rose-100 text-rose-800"
                     : "bg-neutral-100 text-neutral-700";
                 return (
@@ -711,7 +739,7 @@ export default async function AdminDashboard() {
                           {o.items.length} {o.items.length === 1 ? "item" : "itens"}
                         </span>
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusTone}`}>
-                          {o.status}
+                          {STATUS_LABEL_PT[o.status] || o.status}
                         </span>
                       </div>
                     </div>

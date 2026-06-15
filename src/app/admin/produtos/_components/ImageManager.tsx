@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 
 type Img = { id: string; url: string; position: number };
 
+const UPLOAD_ERRORS: Record<string, string> = {
+  no_file: "Nenhum arquivo selecionado.",
+  invalid_type: "Formato inválido. Use JPG, PNG, WEBP ou GIF.",
+  too_large: "Imagem muito grande (máx. 12MB). Comprima e tente de novo.",
+  storage_misconfigured: "Storage não configurado no servidor (falta a chave do Supabase).",
+  bucket_create_failed: "Não foi possível criar o bucket de imagens no Supabase.",
+  upload_failed: "Falha ao enviar pro Supabase Storage.",
+  server_error: "Erro inesperado no servidor.",
+};
+
 export function ImageManager({ productId, images: initial }: { productId: string; images: Img[] }) {
   const router = useRouter();
   const [images, setImages] = useState<Img[]>(initial);
@@ -22,7 +32,8 @@ export function ImageManager({ productId, images: initial }: { productId: string
         const up = await fetch("/api/upload", { method: "POST", body: fd });
         if (!up.ok) {
           const j = await up.json().catch(() => ({}));
-          throw new Error(j.error || "Falha no upload");
+          const msg = UPLOAD_ERRORS[j.error] || j.error || "Falha no upload";
+          throw new Error(j.detail ? `${msg} (${j.detail})` : msg);
         }
         const { url } = await up.json();
         const r = await fetch(`/api/admin/products/${productId}/images`, {

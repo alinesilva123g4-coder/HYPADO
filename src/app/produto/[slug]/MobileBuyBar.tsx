@@ -10,12 +10,18 @@ type Variant = { id: string; size: string; stock: number };
 export function MobileBuyBar({
   priceCents,
   variants,
+  colors = [],
+  selectedColor = null,
+  onSelectColor,
   selectedSize,
   onSelectSize,
   onConfirm,
 }: {
   priceCents: number;
   variants: Variant[];
+  colors?: string[];
+  selectedColor?: string | null;
+  onSelectColor?: (c: string) => void;
   selectedSize: string | null;
   onSelectSize: (s: string) => void;
   onConfirm: () => void;
@@ -36,9 +42,11 @@ export function MobileBuyBar({
 
   const selectedVariant = variants.find((v) => v.size === selectedSize);
   const outOfStock = selectedVariant?.stock === 0;
+  const hasColors = colors.length > 0;
+  const needsColor = hasColors && !selectedColor;
 
   function handleCta() {
-    if (!selectedSize) {
+    if (needsColor || !selectedSize) {
       setSheetOpen(true);
       return;
     }
@@ -52,13 +60,16 @@ export function MobileBuyBar({
     onSelectSize(size);
   }
 
+  function pickColor(c: string) {
+    haptic(6);
+    onSelectColor?.(c);
+  }
+
   return (
     <>
-      {/* Bottom bar — mobile only */}
-      <div
-        className="md:hidden fixed inset-x-0 bottom-0 z-[80] bg-background/95 backdrop-blur-md border-t border-line"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
+      {/* Barra de compra — mobile only. Fica empilhada logo acima da BottomNav
+          (que volta a aparecer no produto), por isso o offset de 58px. */}
+      <div className="md:hidden fixed inset-x-0 bottom-[calc(58px+env(safe-area-inset-bottom))] z-[80] bg-background/95 backdrop-blur-md border-t border-line">
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="flex flex-col min-w-0">
             <span className="text-[9px] uppercase tracking-[0.25em] text-muted">
@@ -75,6 +86,8 @@ export function MobileBuyBar({
           >
             {outOfStock
               ? "Esgotado"
+              : needsColor
+              ? "Escolher cor"
               : selectedSize
               ? "Adicionar"
               : "Escolher tamanho"}
@@ -115,9 +128,11 @@ export function MobileBuyBar({
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="text-[10px] uppercase tracking-[0.3em] text-muted">
-                      Tamanho
+                      {needsColor ? "Cor" : "Tamanho"}
                     </div>
-                    <h3 className="mt-1 text-lg font-medium">Escolha o tamanho</h3>
+                    <h3 className="mt-1 text-lg font-medium">
+                      {needsColor ? "Escolha a cor" : "Escolha o tamanho"}
+                    </h3>
                   </div>
                   <button
                     onClick={() => setSheetOpen(false)}
@@ -130,6 +145,37 @@ export function MobileBuyBar({
                   </button>
                 </div>
 
+                {hasColors && (
+                  <div className="mb-4">
+                    <div className="text-[10px] uppercase tracking-[0.3em] text-muted mb-2">
+                      Cor
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {colors.map((c) => {
+                        const isSelected = selectedColor === c;
+                        return (
+                          <button
+                            key={c}
+                            onClick={() => pickColor(c)}
+                            className={`px-4 py-3 text-sm border rounded-md transition-all active:scale-95 ${
+                              isSelected
+                                ? "border-foreground bg-foreground text-background"
+                                : "border-line hover:border-foreground"
+                            }`}
+                          >
+                            {c}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {needsColor ? (
+                  <div className="text-xs text-muted">
+                    Selecione a cor pra ver os tamanhos.
+                  </div>
+                ) : (
                 <div className="grid grid-cols-4 gap-2">
                   {variants.map((v) => {
                     const isSelected = selectedSize === v.size;
@@ -155,13 +201,16 @@ export function MobileBuyBar({
                     );
                   })}
                 </div>
+                )}
 
                 <button
                   onClick={handleCta}
-                  disabled={!selectedSize || outOfStock}
+                  disabled={needsColor || !selectedSize || outOfStock}
                   className="mt-5 w-full bg-foreground text-background py-3.5 text-xs uppercase tracking-widest font-medium rounded-md active:scale-[0.98] transition-transform disabled:bg-line disabled:text-muted disabled:cursor-not-allowed"
                 >
-                  {!selectedSize
+                  {needsColor
+                    ? "Selecione a cor"
+                    : !selectedSize
                     ? "Selecione um tamanho"
                     : outOfStock
                     ? "Esgotado"

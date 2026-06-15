@@ -36,7 +36,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const next: Toast =
       typeof t === "string"
         ? { id: crypto.randomUUID(), text: t, variant: "default" }
-        : { id: crypto.randomUUID(), variant: "default", ...t };
+        : { ...t, variant: t.variant ?? "default", id: crypto.randomUUID() };
     setToasts((prev) => [...prev.slice(-2), next]);
   }, []);
 

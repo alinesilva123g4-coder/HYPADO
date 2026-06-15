@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SimplePage } from "../_components/SimplePage";
 
 export const metadata = { title: "Políticas · HYPADO" };
@@ -19,11 +20,16 @@ export default function PoliticaPage() {
         fechamento pelo WhatsApp.
       </p>
 
-      <h2 className="text-lg md:text-xl font-medium text-foreground mt-6">Privacidade</h2>
+      <h2 className="text-lg md:text-xl font-medium text-foreground mt-6">Privacidade e dados (LGPD)</h2>
       <p>
-        Coletamos apenas o necessário pra processar o pedido (nome, endereço, contato).
-        Não compartilhamos com terceiros além das transportadoras. Pra solicitar exclusão
-        de dados, fala com a gente pelo WhatsApp ou e-mail.
+        Coletamos apenas o necessário pra processar o pedido (nome, endereço, contato) e
+        respeitamos os seus direitos como titular. Para entender em detalhe quais dados
+        tratamos, por que, com quem compartilhamos e como exercer seus direitos, veja a
+        nossa{" "}
+        <Link href="/privacidade" className="text-foreground underline underline-offset-4">
+          Política de Privacidade completa
+        </Link>
+        .
       </p>
     </SimplePage>
   );

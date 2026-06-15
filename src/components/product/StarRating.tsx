@@ -58,7 +58,7 @@ export function StarRating({
   );
 }
 
-function Star({ size }: { size: number; filled?: boolean }) {
+function Star({ size, filled = false }: { size: number; filled?: boolean }) {
   return (
     <svg
       width={size}

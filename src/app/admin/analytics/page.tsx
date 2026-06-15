@@ -123,14 +123,15 @@ export default async function AnalyticsPage({
 
       {/* KPIs */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <Kpi label="Visitantes únicos" value={d.uniqueSessions.toLocaleString("pt-BR")} hint="sessões diferentes" accent="info" />
-        <Kpi label="Page views" value={pageViews.toLocaleString("pt-BR")} hint={`${viewsPerSession.toFixed(1)} por sessão`} />
-        <Kpi label="Carrinho" value={addToCart.toLocaleString("pt-BR")} hint="adições ao carrinho" />
+        <Kpi label="Visitantes únicos" value={d.uniqueSessions.toLocaleString("pt-BR")} hint="sessões diferentes" accent="info" icon="users" />
+        <Kpi label="Page views" value={pageViews.toLocaleString("pt-BR")} hint={`${viewsPerSession.toFixed(1)} por sessão`} icon="eye" />
+        <Kpi label="Carrinho" value={addToCart.toLocaleString("pt-BR")} hint="adições ao carrinho" icon="cart" />
         <Kpi
           label="Conversão"
           value={`${convRate.toFixed(1)}%`}
           hint={`${d.conversions} pedidos`}
           accent={convRate >= 2 ? "success" : "default"}
+          icon="target"
         />
       </section>
 
@@ -143,10 +144,10 @@ export default async function AnalyticsPage({
           </div>
           <div className="flex items-center gap-3 text-[11px] text-neutral-600">
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-neutral-900" /> visitantes
+              <span className="w-2.5 h-2.5 rounded-full bg-neutral-900" /> visitantes
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-neutral-300" /> page views
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-400" /> page views
             </span>
           </div>
         </div>
@@ -245,65 +246,106 @@ export default async function AnalyticsPage({
   );
 }
 
+function smoothPath(pts: [number, number][]) {
+  if (pts.length < 2) return "";
+  let d = `M ${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+
 function DailyChart({ series }: { series: { day: Date; views: number; sessions: number }[] }) {
-  const w = 800;
-  const h = 180;
-  const pad = { l: 4, r: 4, t: 12, b: 22 };
+  const w = 820;
+  const h = 200;
+  const pad = { l: 6, r: 6, t: 16, b: 26 };
   const innerW = w - pad.l - pad.r;
   const innerH = h - pad.t - pad.b;
   const max = Math.max(1, ...series.map((p) => Math.max(p.views, p.sessions)));
-  const barW = innerW / series.length;
-  const labelStep = Math.max(1, Math.floor(series.length / 8));
+  const n = series.length;
+  const colW = innerW / Math.max(1, n - 1);
+  const x = (i: number) => pad.l + i * colW;
+  const y = (v: number) => pad.t + innerH - (v / max) * innerH;
+  const labelStep = Math.max(1, Math.floor(n / 8));
+
+  const viewsPts = series.map((p, i) => [x(i), y(p.views)] as [number, number]);
+  const sessionsPts = series.map((p, i) => [x(i), y(p.sessions)] as [number, number]);
+  const viewsLine = smoothPath(viewsPts);
+  const sessionsLine = smoothPath(sessionsPts);
+  const baseY = pad.t + innerH;
+  const viewsArea = `${viewsLine} L ${x(n - 1)},${baseY} L ${x(0)},${baseY} Z`;
+  const sessionsArea = `${sessionsLine} L ${x(n - 1)},${baseY} L ${x(0)},${baseY} Z`;
+
+  // pico de visitantes pra destacar
+  const peakIdx = series.reduce((best, p, i) => (p.sessions > series[best].sessions ? i : best), 0);
+  const peak = series[peakIdx];
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-40 md:h-48">
-      {[0.25, 0.5, 0.75, 1].map((t, i) => (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-44 md:h-56" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="viewsGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#a5b4fc" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#a5b4fc" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="sessGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#171717" stopOpacity="0.22" />
+          <stop offset="100%" stopColor="#171717" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {/* gridlines */}
+      {[0, 0.5, 1].map((t, i) => (
         <line
           key={i}
           x1={pad.l}
           x2={w - pad.r}
-          y1={pad.t + innerH * (1 - t)}
-          y2={pad.t + innerH * (1 - t)}
-          stroke="#f5f5f5"
+          y1={pad.t + innerH * t}
+          y2={pad.t + innerH * t}
+          stroke="#f1f1f1"
           strokeWidth="1"
+          strokeDasharray={t === 1 ? "0" : "4 5"}
         />
       ))}
-      <line x1={pad.l} x2={w - pad.r} y1={h - pad.b} y2={h - pad.b} stroke="#e5e5e5" strokeWidth="1" />
-      {series.map((p, i) => {
-        const sessionsH = (p.sessions / max) * innerH;
-        const viewsH = (p.views / max) * innerH;
-        const x = pad.l + i * barW;
-        const gap = 2;
-        const subW = (barW - gap * 3) / 2;
-        return (
-          <g key={i}>
+
+      {/* page views (área clara, atrás) */}
+      <path d={viewsArea} fill="url(#viewsGrad)" />
+      <path d={viewsLine} fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+
+      {/* visitantes (área escura, à frente) */}
+      <path d={sessionsArea} fill="url(#sessGrad)" />
+      <path d={sessionsLine} fill="none" stroke="#171717" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+
+      {/* destaque do pico de visitantes */}
+      {peak.sessions > 0 && (
+        <>
+          <line x1={x(peakIdx)} x2={x(peakIdx)} y1={y(peak.sessions)} y2={baseY} stroke="#171717" strokeWidth="1" strokeDasharray="3 3" opacity="0.25" />
+          <circle cx={x(peakIdx)} cy={y(peak.sessions)} r="4" fill="#171717" stroke="#fff" strokeWidth="2" />
+        </>
+      )}
+
+      {/* x labels + hover hitboxes */}
+      {series.map((p, i) => (
+        <g key={i}>
+          <rect x={x(i) - colW / 2} y={pad.t} width={colW} height={innerH} fill="transparent">
             <title>
               {p.day.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} — {p.sessions} visitantes, {p.views} views
             </title>
-            <rect
-              x={x + gap}
-              y={h - pad.b - sessionsH}
-              width={subW}
-              height={Math.max(0, sessionsH)}
-              fill="#171717"
-              rx="2"
-            />
-            <rect
-              x={x + gap + subW + gap}
-              y={h - pad.b - viewsH}
-              width={subW}
-              height={Math.max(0, viewsH)}
-              fill="#d4d4d4"
-              rx="2"
-            />
-            {i % labelStep === 0 && (
-              <text x={x + barW / 2} y={h - 6} textAnchor="middle" fontSize="9" fill="#737373">
-                {p.day.getDate()}/{p.day.getMonth() + 1}
-              </text>
-            )}
-          </g>
-        );
-      })}
+          </rect>
+          {i % labelStep === 0 && (
+            <text x={x(i)} y={h - 8} textAnchor="middle" fontSize="10" fill="#9ca3af">
+              {p.day.getDate()}/{p.day.getMonth() + 1}
+            </text>
+          )}
+        </g>
+      ))}
     </svg>
   );
 }
@@ -323,16 +365,25 @@ function Pill({ href, active, children }: { href: string; active: boolean; child
   );
 }
 
+const ANALYTICS_ICONS: Record<string, React.ReactNode> = {
+  users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
+  eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></>,
+  cart: <><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6" /></>,
+  target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></>,
+};
+
 function Kpi({
   label,
   value,
   hint,
   accent,
+  icon,
 }: {
   label: string;
   value: string;
   hint?: string;
   accent?: "default" | "success" | "info";
+  icon?: keyof typeof ANALYTICS_ICONS;
 }) {
   const tone =
     accent === "success"
@@ -340,9 +391,18 @@ function Kpi({
       : accent === "info"
       ? "border-sky-200 bg-gradient-to-br from-sky-50/70 to-white"
       : "border-neutral-200 bg-white";
+  const iconTone =
+    accent === "success" ? "text-emerald-500" : accent === "info" ? "text-sky-500" : "text-neutral-400";
   return (
-    <div className={`rounded-2xl border p-3.5 md:p-4 ${tone}`}>
-      <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-500 font-medium">{label}</div>
+    <div className={`rounded-2xl border p-3.5 md:p-4 transition-shadow hover:shadow-sm ${tone}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-500 font-medium">{label}</div>
+        {icon && ANALYTICS_ICONS[icon] && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 shrink-0 ${iconTone}`}>
+            {ANALYTICS_ICONS[icon]}
+          </svg>
+        )}
+      </div>
       <div className="mt-1.5 text-xl md:text-2xl font-semibold tabular-nums">{value}</div>
       {hint && <div className="mt-0.5 text-[11px] text-neutral-500">{hint}</div>}
     </div>

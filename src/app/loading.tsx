@@ -1,7 +1,9 @@
+"use client";
+
 export default function Loading() {
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-background overflow-hidden"
+      className="fixed inset-0 z-[150] flex items-center justify-center bg-background overflow-hidden"
       aria-busy="true"
       aria-live="polite"
       style={{ animation: "hp-veil-in 400ms ease-out both" }}

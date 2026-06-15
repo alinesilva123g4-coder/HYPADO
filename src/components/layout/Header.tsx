@@ -7,9 +7,12 @@ import { useEffect, useState } from "react";
 import { MobileMenu } from "./MobileMenu";
 import { CartButton } from "@/components/cart/CartButton";
 import { AnnounceBar } from "./AnnounceBar";
+import { SupportIcon } from "./BottomNav";
+import { useChat } from "@/lib/chat";
 
 const NAV_LEFT = [
   { label: "Blusas", href: "/categoria/Blusas" },
+  { label: "Calças", href: "/categoria/Calças" },
   { label: "Shorts", href: "/categoria/Shorts" },
   { label: "Kits", href: "/categoria/Kits" },
 ];
@@ -22,11 +25,30 @@ const NAV_RIGHT = [
 
 export function Header() {
   const pathname = usePathname();
+  const { toggle: toggleChat, open: chatOpen, unread } = useChat();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
+    let ticking = false;
+    let current = false;
+    const update = () => {
+      const y = window.scrollY;
+      // Histerese: encolhe em >64, só volta a expandir em <16.
+      // Evita flicker quando o reflow do header sticky empurra o scrollY de volta pro limiar.
+      const next = current ? y > 16 : y > 64;
+      if (next !== current) {
+        current = next;
+        setScrolled(next);
+      }
+      ticking = false;
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    update();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -92,6 +114,23 @@ export function Header() {
                 <NavLink key={c.href} {...c} active={pathname === c.href} />
               ))}
             </nav>
+            <div className="hidden md:block h-5 w-px bg-line" aria-hidden />
+            {/* Atendente Virtual — abre o chatbot (desktop; no mobile fica na barra inferior) */}
+            <button
+              type="button"
+              onClick={toggleChat}
+              aria-label="Falar com o Atendente Virtual"
+              aria-pressed={chatOpen}
+              title="Atendente Virtual"
+              className={`hidden md:inline-flex relative h-10 w-10 items-center justify-center rounded-full transition-colors active:scale-90 ${
+                chatOpen ? "text-foreground" : "text-foreground/70 hover:text-foreground"
+              }`}
+            >
+              <SupportIcon className="h-7 w-7" />
+              {unread && !chatOpen && (
+                <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background" />
+              )}
+            </button>
             <div className="hidden md:block h-5 w-px bg-line" aria-hidden />
             <CartButton />
           </div>

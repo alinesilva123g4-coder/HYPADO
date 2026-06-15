@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { invalidateHeitorCache } from "@/lib/chat-context";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,6 +12,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
     if ("priceCents" in body) data.priceCents = Number(body.priceCents) || 0;
     const product = await prisma.product.update({ where: { id }, data });
+    invalidateHeitorCache();
     return NextResponse.json(product);
   } catch (e: any) {
     if (e.code === "P2002") return NextResponse.json({ error: "slug_em_uso" }, { status: 409 });
@@ -20,6 +22,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await prisma.product.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  try {
+    await prisma.product.delete({ where: { id } });
+    invalidateHeitorCache();
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    // P2003: produto referenciado por pedidos (OrderItem é Restrict) — não pode excluir.
+    if (e.code === "P2003" || e.code === "P2014") {
+      return NextResponse.json({ error: "tem_pedidos" }, { status: 409 });
+    }
+    if (e.code === "P2025") {
+      return NextResponse.json({ error: "nao_encontrado" }, { status: 404 });
+    }
+    console.error("product delete error", e);
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
 }

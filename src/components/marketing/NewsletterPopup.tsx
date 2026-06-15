@@ -4,6 +4,8 @@ import { useEffect, useState, useRef, forwardRef } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { track } from "@/lib/track";
+import { trackLead } from "@/lib/analytics";
 
 const STORAGE_KEY = "hypado:newsletter-popup:v1";
 const DELAY_MS = 12000;
@@ -109,6 +111,14 @@ export function NewsletterPopup() {
         throw new Error(data?.error ?? "Falha ao enviar.");
       }
       setSuccess(true);
+      track("lead_captured", {
+        meta: { source: "newsletter_popup", hasBirthdate: !!birthdate },
+      });
+      {
+        const d = phone.replace(/\D/g, "");
+        const withDdi = d.startsWith("55") ? d : `55${d}`;
+        trackLead("newsletter_popup", { phone: withDdi });
+      }
       try {
         localStorage.setItem(
           STORAGE_KEY,
@@ -143,7 +153,7 @@ export function NewsletterPopup() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="hp-newsletter-title"
-        className={`relative w-full max-w-[440px] bg-background border border-foreground/15 rounded-2xl overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        className={`relative w-full max-w-[380px] bg-background border border-foreground/15 rounded-2xl overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           open ? "translate-y-0 opacity-100 scale-100" : "translate-y-6 opacity-0 scale-95"
         }`}
       >
@@ -161,13 +171,13 @@ export function NewsletterPopup() {
         </button>
 
         {success ? (
-          <div className="px-8 py-12 text-center">
+          <div className="px-7 py-10 text-center">
             <Image
               src="/brand/logo.png"
               alt="HYPADO"
               width={160}
               height={160}
-              className="mx-auto h-14 w-auto object-contain mb-6"
+              className="mx-auto h-12 w-auto object-contain mb-5"
             />
             <div className="mx-auto h-14 w-14 rounded-full border border-foreground flex items-center justify-center">
               <svg
@@ -184,40 +194,40 @@ export function NewsletterPopup() {
             </div>
             <h3 className="gothic text-3xl mt-5">Tá na lista.</h3>
             <p className="mt-2 text-sm text-foreground/70 leading-relaxed">
-              Bem-vindo à família HYPADO.
+              Tá em casa. Te avisamos no próximo drop.
             </p>
           </div>
         ) : (
           <>
             {/* Header */}
-            <div className="px-8 pt-9 pb-5 border-b border-line text-center">
+            <div className="px-7 pt-7 pb-4 border-b border-line text-center">
               <Image
                 src="/brand/logo.png"
                 alt="HYPADO"
                 width={160}
                 height={160}
                 priority
-                className="mx-auto h-12 w-auto object-contain mb-5"
+                className="mx-auto h-10 w-auto object-contain mb-4"
               />
               <div className="text-[10px] uppercase tracking-[0.4em] text-foreground/55">
                 Acesso antecipado
               </div>
               <h2
                 id="hp-newsletter-title"
-                className="gothic text-4xl leading-[0.95] mt-3"
+                className="gothic text-3xl leading-[0.95] mt-2.5"
               >
                 Entra na lista,
                 <br />
                 veste primeiro.
               </h2>
-              <p className="mt-4 text-sm leading-relaxed text-foreground/70 max-w-[340px] mx-auto">
-                Drops e super lançamentos toda semana. Cadastra e receba antes
-                de todo mundo.
+              <p className="mt-3 text-[13px] leading-relaxed text-foreground/70 max-w-[300px] mx-auto">
+                Cada drop é limitado e sem reposição. Quem tá na lista é avisado
+                antes — e veste antes de esgotar.
               </p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="px-8 py-6 space-y-4">
+            <form onSubmit={handleSubmit} className="px-7 py-5 space-y-3">
               <Field
                 ref={firstFieldRef}
                 label="Nome"

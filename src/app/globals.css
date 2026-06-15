@@ -41,8 +41,14 @@
 }
 
 html {
-  scroll-behavior: smooth;
   scroll-padding-top: 120px;
+}
+/* Smooth scroll apenas para âncoras (clicks em href="#..."),
+   nunca para navegação entre páginas — senão o reset de scroll
+   do Next anima por 500ms e o usuário vê o footer/conteúdo
+   intermediário antes de chegar ao topo da nova página. */
+:target {
+  scroll-behavior: smooth;
 }
 
 :root {
@@ -63,6 +69,60 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ============================================================
+   APP FEEL — comportamento de aplicativo nativo.
+   PWA standalone, safe-area do notch, barra inferior fixa,
+   sem realce de toque cinza, sem bounce branco no overscroll.
+   ============================================================ */
+
+/* Sem highlight cinza ao tocar (comportamento de app, não de site). */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* UI não-selecionável (nav, botões). O conteúdo de leitura volta a
+   ser selecionável logo abaixo — só a "casca" do app fica imune. */
+.bottom-nav,
+header,
+footer {
+  -webkit-user-select: none;
+  user-select: none;
+}
+main p, main h1, main h2, main h3, main li, main span, main a {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+body {
+  /* Evita o "bounce" branco do iOS revelando fundo fora da página. */
+  overscroll-behavior-y: none;
+}
+
+/* Barra inferior estilo app (Liquid Glass / iPhone 17) — pílula flutuante.
+   A safe-area (home indicator) vira a folga ABAIXO da pílula, não dentro
+   dela, pra o vidro não esticar até a borda. */
+.bottom-nav {
+  padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+}
+
+/* Espaço pro conteúdo não ficar atrás da barra flutuante (só no mobile,
+   onde a barra existe). O respiro vai no rodapé — que é sempre o último
+   elemento — pra que o preto do footer preencha esse vão. Aplicar no body
+   deixaria o fundo branco aparecendo como uma barra embaixo do rodapé. */
+@media (max-width: 767px) {
+  footer {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Quando instalado como app (standalone), some o respiro extra do topo
+   e o tap em links fica instantâneo. */
+@media all and (display-mode: standalone) {
+  body {
+    touch-action: manipulation;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {
@@ -74,12 +134,12 @@ html, body {
 
 /* Page transition — aplicada pelo template.tsx em cada navegação */
 @keyframes hp-page-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { transform: translateY(4px); }
+  to   { transform: translateY(0); }
 }
 .page-transition {
-  animation: hp-page-in 320ms var(--ease-out-expo) both;
-  will-change: opacity, transform;
+  animation: hp-page-in 220ms var(--ease-out-expo) both;
+  will-change: transform;
 }
 
 /* Reveal on mount — para cards e listas */
@@ -89,6 +149,54 @@ html, body {
 }
 .rise {
   animation: hp-rise 600ms var(--ease-out-expo) both;
+}
+
+/* ============================================================
+   SCROLL DINÂMICO — reveal ao entrar na viewport.
+   Só transform + opacity (compositado na GPU). O estado inicial
+   escondido é seguro: o componente Reveal força .is-visible quando
+   não há JS/IntersectionObserver, então nada some pra ninguém.
+   ============================================================ */
+.hp-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s var(--ease-out-expo),
+    transform 0.7s var(--ease-out-expo);
+  will-change: opacity, transform;
+}
+.hp-reveal.is-visible {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hp-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Hero: pinta na hora (sem fade global do <img>) e ganha um parallax
+   sutil dirigido pelo scroll — zero JS. Onde scroll-timeline não existe,
+   fica simplesmente estático. */
+.hp-hero-img {
+  animation: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .hp-hero-img {
+      animation: hp-parallax linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 92vh;
+      will-change: transform;
+    }
+    @keyframes hp-parallax {
+      from { transform: scale(1.12) translateY(-3%); }
+      to   { transform: scale(1.12) translateY(3.5%); }
+    }
+  }
 }
 
 .brand-mark {
@@ -160,8 +268,11 @@ html, body {
     transparent 52%
   );
   background-size: 260% 100%;
-  background-position: -130% 0;
+  background-position: 230% 0;
   background-repeat: no-repeat;
+  /* Assinatura SEMPRE visível — brilho varre continuamente (não depende de
+     hover, então aparece também no mobile). O loop tem pausa longa embutida
+     pra continuar sutil. */
   animation: btn-shine 5s linear infinite;
 }
 
@@ -171,14 +282,14 @@ html, body {
   100% { background-position: 230% 0; }
 }
 
-/* Arco fino percorrendo o perímetro interno — único elemento animado de contorno. */
+/* Arco fino percorrendo o perímetro interno — acende só no hover/foco. */
 .btn-trace::after {
   content: "";
   position: absolute;
-  inset: 5px;
+  inset: 2.5px;
   box-sizing: border-box;
-  border-radius: calc(0.375rem - 3px);
-  padding: 1px;
+  border-radius: calc(0.375rem - 1px);
+  padding: 1.75px;
   background: conic-gradient(
     from var(--trace-angle),
     transparent 0deg,
@@ -194,12 +305,10 @@ html, body {
           mask-composite: exclude;
   pointer-events: none;
   z-index: 2;
-  animation: btn-trace-spin 3.6s linear infinite;
-}
-
-.btn-trace:hover::after,
-.btn-trace:focus-visible::after {
-  animation-duration: 2.4s;
+  /* Arco SEMPRE aceso e percorrendo o perímetro — assinatura visível em repouso. */
+  opacity: 1;
+  animation: btn-trace-spin 2.4s linear infinite;
+  transition: opacity 0.3s var(--ease-out-expo);
 }
 
 @keyframes btn-trace-spin {
@@ -258,6 +367,10 @@ html, body {
   0%, 100% { opacity: 0.15; }
   50%      { opacity: 0.55; }
 }
+@keyframes hp-dot-bounce {
+  0%, 80%, 100% { transform: translateY(0);     opacity: 0.35; }
+  40%           { transform: translateY(-4px);  opacity: 1; }
+}
 @keyframes hp-load-mask {
   0%   { transform: translateY(100%); }
   60%  { transform: translateY(-100%); }
@@ -292,6 +405,26 @@ html, body {
   border-radius: 6px;
 }
 
+/* Onda animada na divisão home (branco) → footer (preto) */
+@keyframes hp-wave-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+/* Respiração vertical sutil — dá vida orgânica à onda (aplicada num <g> interno
+   para combinar com o drift horizontal do <svg>). */
+@keyframes hp-wave-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(var(--bob, 3px)); }
+}
+.hp-wave-bob {
+  animation: hp-wave-bob var(--bob-dur, 6s) var(--ease-in-out-soft) infinite;
+  animation-delay: var(--bob-delay, 0s);
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hp-wave-anim, .hp-wave-bob { animation: none !important; }
+}
+
 /* Smooth image reveal */
 @keyframes hp-img-in {
   from { opacity: 0; transform: scale(1.02); }
@@ -299,6 +432,42 @@ html, body {
 }
 img, video {
   animation: hp-img-in 480ms var(--ease-out-expo) both;
+}
+
+/* ============================================================
+   MODO BAIXA POTÊNCIA (.lp) — aparelhos antigos/fracos, redes lentas
+   ou Economia de Dados (classe marcada no <html> por um script pré-pintura).
+   O layout NÃO muda: removemos só os efeitos caros que rodam o tempo todo
+   (animações infinitas, conic-gradient via @property, blend-modes, ruído,
+   parallax e o fade de imagem em massa). Tudo continua bonito, só mais leve.
+   ============================================================ */
+/* CTAs: tira o brilho/arco animado (repinta todo frame); mantém só o
+   contorno e o relevo estáticos. */
+.lp .btn-trace {
+  background-image: none;
+  animation: none;
+}
+.lp .btn-trace::after { display: none; }
+
+/* Onda animada do rodapé — congela. */
+.lp .hp-wave-anim,
+.lp .hp-wave-bob { animation: none !important; }
+
+/* Texturas com mix-blend-mode (caras em GPU antiga) — removidas. */
+.lp .ink-section::after { display: none; }
+.lp .paper-grain::before { display: none; }
+
+/* Skeleton para de animar; sem fade de mount em cada imagem/vídeo. */
+.lp .skeleton { animation: none; }
+.lp img,
+.lp video,
+.lp .hp-hero-img { animation: none !important; }
+
+/* Reveal no scroll vira aparição instantânea (sem transição contínua). */
+.lp .hp-reveal {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
 }
 
 /* Tema escuro local — usado na seção de avaliações.
@@ -343,37 +512,57 @@ img, video {
   );
 }
 
-/* Seção em tinta quente (xilogravura) — fundo preto-marrom + grão.
-   Isolada: o grão vive num ::before contido, não na página inteira. */
+/* Seção em tinta (xilogravura) — fundo preto profundo com relevo de luz fria,
+   hachura diagonal e grão de filme. Camadas empilhadas em ::before/::after,
+   contidas pelo isolation: o fundo respira sem vazar pra página. */
 .ink-section {
   position: relative;
   isolation: isolate;
-  background: var(--ink);
   color: #fff;
+  /* Base: brilho frio no topo-esquerda + vinheta que fecha as bordas
+     + clareamento vertical, tudo em escala de cinza puro. */
+  background:
+    radial-gradient(
+      130% 95% at 16% -8%,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.03) 28%,
+      transparent 58%
+    ),
+    radial-gradient(
+      140% 120% at 50% 125%,
+      rgba(0, 0, 0, 0.55) 0%,
+      transparent 60%
+    ),
+    linear-gradient(180deg, #121212 0%, #0a0a0a 55%, #060606 100%);
 }
+/* Hachura diagonal de xilogravura — fina, quase imperceptível, dá textura
+   de talhe sem competir com o texto. */
 .ink-section::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  opacity: 0.5;
-  mix-blend-mode: soft-light;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
   pointer-events: none;
+  opacity: 0.55;
+  background-image: repeating-linear-gradient(
+    -42deg,
+    rgba(255, 255, 255, 0.022) 0,
+    rgba(255, 255, 255, 0.022) 1px,
+    transparent 1px,
+    transparent 7px
+  );
 }
-/* Brilho de sol baixo sobre a tinta — calor sutil de ochre/clay. */
+/* Grão de filme por cima — quebra o digital, simula tinta na fibra do papel. */
 .ink-section::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
+  opacity: 0.42;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
   pointer-events: none;
-  background: radial-gradient(
-    120% 90% at 18% 0%,
-    color-mix(in srgb, var(--ochre) 22%, transparent) 0%,
-    transparent 55%
-  );
 }
 
 /* Borda superior de cordel — talhe de barro fino marcando capítulo. */
@@ -391,6 +580,98 @@ img, video {
 }
 .accent-underline:hover {
   background-size: 100% 2.5px;
+}
+
+/* ============================================================
+   IMPERFEIÇÃO HUMANA — quebras de eixo, italics editoriais,
+   rabiscos. Aplicadas em pontos cirúrgicos pra puxar o site
+   pra fora do "limpo demais = IA".
+   ============================================================ */
+
+/* Serifa italic com swash — só em UMA palavra por bloco.
+   Nunca em parágrafos inteiros, nunca em UI. */
+.editorial {
+  font-family: var(--font-editorial), "Cormorant Garamond", Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  /* Compensa o size visual menor da serifa em relação ao gothic */
+  font-size: 1.08em;
+  line-height: 0.85;
+}
+
+/* Pequenos tilts manuais — sempre ímpares, nunca múltiplos de 5deg. */
+.tilt-l { transform: rotate(-3.2deg); }
+.tilt-r { transform: rotate(2.7deg); }
+.tilt-micro-l { transform: rotate(-1.4deg); }
+.tilt-micro-r { transform: rotate(1.1deg); }
+
+/* Offsets ímpares pra quebrar grid perfeito. */
+.nudge-down-1 { transform: translateY(3px); }
+.nudge-down-2 { transform: translateY(7px); }
+.nudge-up-1 { transform: translateY(-4px); }
+
+/* Rabisco manuscrito sob títulos — SVG inline, traço irregular. */
+.scribble {
+  position: relative;
+  display: inline-block;
+}
+.scribble::after {
+  content: "";
+  position: absolute;
+  left: -4%;
+  right: -6%;
+  bottom: -0.15em;
+  height: 0.42em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 18' preserveAspectRatio='none'%3E%3Cpath d='M3 11 C 28 4, 56 14, 84 8 S 138 14, 162 7 S 192 12, 198 9' stroke='%230a0a0a' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  pointer-events: none;
+  opacity: 0.85;
+}
+.scribble.scribble-white::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 18' preserveAspectRatio='none'%3E%3Cpath d='M3 11 C 28 4, 56 14, 84 8 S 138 14, 162 7 S 192 12, 198 9' stroke='%23ffffff' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* Régua hachurada com espessura desigual — variação manual da hatch-rule. */
+.hatch-rule-uneven {
+  height: 8px;
+  background-image: repeating-linear-gradient(
+    -42deg,
+    color-mix(in srgb, var(--clay) 65%, transparent) 0,
+    color-mix(in srgb, var(--clay) 65%, transparent) 1.5px,
+    transparent 1.5px,
+    transparent 4px,
+    color-mix(in srgb, var(--clay) 40%, transparent) 4px,
+    color-mix(in srgb, var(--clay) 40%, transparent) 5px,
+    transparent 5px,
+    transparent 8px
+  );
+}
+
+/* Ruído sutil pra fundos sand/surface ficarem com textura de papel. */
+.paper-grain {
+  position: relative;
+}
+.paper-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+/* Marca de assinatura — pequeno "x" tachado, manuscrito. */
+.mark-x {
+  display: inline-block;
+  font-family: var(--font-editorial), serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  transform: rotate(-4deg);
 }
 
 /* Selo editorial — número/índice em bloco de barro (capa de cordel). */

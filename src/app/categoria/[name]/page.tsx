@@ -1,16 +1,39 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { ProductCard } from "@/components/product/ProductCard";
+import { CategoryViewTracker } from "./CategoryViewTracker";
+import { SITE_URL, SITE_NAME } from "@/lib/site";
 
 export const revalidate = 60;
 
-const VALID = ["Blusas", "Camisetas", "Shorts", "Chinelas", "Kits"] as const;
+const VALID = ["Blusas", "Camisetas", "Calças", "Shorts", "Chinelas", "Kits"] as const;
 type Category = (typeof VALID)[number];
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ name: string }>;
+}): Promise<Metadata> {
+  const { name } = await params;
+  const category = normalize(name);
+  if (!category) return { title: "Categoria" };
+  const url = `${SITE_URL}/categoria/${encodeURIComponent(category)}`;
+  const title = `${category} · ${SITE_NAME}`;
+  const description = TAGLINES[category];
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: "website", url, title, description },
+  };
+}
 
 const TAGLINES: Record<Category, string> = {
   Blusas: "Modelagem oversized, algodão pesado.",
   Camisetas: "Algodão peruano, caimento premium.",
+  Calças: "Jeans skinny premium, caimento que valoriza.",
   Shorts: "Tactel premium, leve pra qualquer rolê.",
   Chinelas: "Conforto absurdo, identidade nordestina.",
   Kits: "Looks completos, streetwear em conjunto.",
@@ -52,6 +75,7 @@ export default async function CategoryPage({
 
   return (
     <>
+      <CategoryViewTracker category={category} count={products.length} />
       {/* Header da categoria */}
       <section className="mx-auto max-w-7xl px-4 md:px-6 pt-6 md:pt-10 pb-4 md:pb-6">
         <nav className="text-[10px] uppercase tracking-[0.3em] text-muted flex items-center gap-2">

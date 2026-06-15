@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { formatBRL } from "@/lib/format";
 import { OrderRow } from "./_components/OrderRow";
+import { RealtimeRefresh } from "../_components/RealtimeRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,7 @@ export default async function OrdersPage({
 
   return (
     <div>
+      <RealtimeRefresh table="Order" insertLabel="Novo pedido HYPADO 🎉" />
       <header className="mb-6">
         <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">HYPADO · vendas</div>
         <h1 className="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">Pedidos</h1>

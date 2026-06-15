@@ -13,7 +13,7 @@ type Initial = {
   active: boolean;
 };
 
-const CATEGORIES = ["Blusas", "Camisetas", "Shorts", "Kits", "Chinelas"];
+const CATEGORIES = ["Blusas", "Camisetas", "Calças", "Shorts", "Kits", "Chinelas"];
 
 function slugify(s: string) {
   return s
@@ -105,16 +105,19 @@ export function ProductForm({
             ))}
           </select>
         </Field>
-        <Field label="Preço (R$)">
-          <input
-            type="text"
-            inputMode="decimal"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            required
-            placeholder="0,00"
-            className="input"
-          />
+        <Field label="Preço">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 pointer-events-none">R$</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+              placeholder="0,00"
+              className="input pl-9 font-medium tabular-nums"
+            />
+          </div>
         </Field>
       </div>
 
@@ -123,24 +126,65 @@ export function ProductForm({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={6}
+          placeholder="Conte os detalhes do produto: tecido, caimento, medidas…"
           className="input resize-y"
         />
       </Field>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-        <span>Produto ativo (visível na loja)</span>
-      </label>
+      {/* Toggle ativo */}
+      <button
+        type="button"
+        onClick={() => setActive((v) => !v)}
+        className={`w-full flex items-center justify-between gap-4 rounded-xl border p-3.5 text-left transition-colors ${
+          active ? "border-emerald-200 bg-emerald-50/60" : "border-neutral-200 bg-neutral-50"
+        }`}
+      >
+        <span>
+          <span className="block text-sm font-medium text-neutral-900">
+            {active ? "Produto ativo" : "Produto oculto"}
+          </span>
+          <span className="block text-xs text-neutral-500">
+            {active ? "Aparece na loja para os clientes." : "Não aparece na loja."}
+          </span>
+        </span>
+        <span
+          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
+            active ? "bg-emerald-500" : "bg-neutral-300"
+          }`}
+        >
+          <span
+            className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${
+              active ? "translate-x-5" : "translate-x-0.5"
+            }`}
+          />
+        </span>
+      </button>
 
-      {err && <p className="text-sm text-red-600">{err}</p>}
+      {err && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{err}</p>
+      )}
 
-      <div className="pt-2">
+      <div className="pt-1 sticky bottom-0 -mx-5 px-5 py-3 bg-gradient-to-t from-white via-white to-white/0 md:static md:bg-none md:p-0">
         <button
           type="submit"
           disabled={saving}
-          className="bg-black text-white text-sm font-medium px-5 py-2.5 rounded-lg disabled:opacity-50"
+          className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-neutral-900 text-white text-sm font-medium px-5 py-3 md:py-2.5 rounded-xl hover:bg-neutral-800 transition-colors disabled:opacity-50 shadow-sm"
         >
-          {saving ? "Salvando…" : mode === "create" ? "Criar produto" : "Salvar alterações"}
+          {saving ? (
+            <>
+              <svg viewBox="0 0 24 24" className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12a9 9 0 1 1-6.2-8.6" strokeLinecap="round" />
+              </svg>
+              Salvando…
+            </>
+          ) : (
+            <>
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {mode === "create" ? <path d="M12 5v14M5 12h14" /> : <path d="M5 13l4 4L19 7" />}
+              </svg>
+              {mode === "create" ? "Criar produto" : "Salvar alterações"}
+            </>
+          )}
         </button>
       </div>
 

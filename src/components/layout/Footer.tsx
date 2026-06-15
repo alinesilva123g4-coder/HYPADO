@@ -5,16 +5,47 @@ import { usePathname } from "next/navigation";
 import { whatsappLink } from "@/lib/whatsapp";
 
 const INSTAGRAM = process.env.NEXT_PUBLIC_INSTAGRAM || "hypado_of";
+const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "558881623640";
+
+/** Formata o número da env (com DDI 55) para exibição: (88) 8162-3640 / (88) 99999-9999 */
+function formatWhatsappDisplay(raw: string) {
+  let d = raw.replace(/\D/g, "");
+  if (d.startsWith("55") && d.length > 11) d = d.slice(2);
+  if (d.length < 10) return raw;
+  const ddd = d.slice(0, 2);
+  const rest = d.slice(2);
+  const mid = rest.length > 8 ? 5 : 4; // celular (9 díg.) vs fixo (8 díg.)
+  return `(${ddd}) ${rest.slice(0, mid)}-${rest.slice(mid)}`;
+}
 
 export function Footer() {
   const pathname = usePathname();
   if (pathname?.startsWith("/admin")) return null;
   const waLink = whatsappLink("Olá, vim do site da HYPADO");
   const igUrl = `https://instagram.com/${INSTAGRAM}`;
+  const waDisplay = formatWhatsappDisplay(WHATSAPP);
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-16 md:mt-28 border-t border-line bg-background">
+    <footer
+      className="relative mt-16 md:mt-28"
+      style={
+        {
+          "--background": "#0a0a0a",
+          "--foreground": "#ffffff",
+          "--muted": "rgba(255,255,255,0.6)",
+          "--line": "rgba(255,255,255,0.14)",
+          isolation: "isolate",
+          // Minimalista: preto profundo e uniforme, com um único respiro de luz
+          // fria no topo (logo) que dissolve pro escuro. Sem textura, sem ruído.
+          background:
+            "radial-gradient(85% 55% at 50% 0%, rgba(255,255,255,0.045) 0%, transparent 60%)," +
+            "#080808",
+        } as React.CSSProperties
+      }
+    >
+      <WaveDivider />
+
       {/* Brand centerpiece */}
       <div className="mx-auto max-w-7xl px-4 md:px-6 pt-12 md:pt-16 pb-8 md:pb-10 flex flex-col items-center text-center">
         <Link
@@ -75,14 +106,6 @@ export function Footer() {
             }
           />
         </div>
-        <a
-          href={igUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 text-xs text-muted hover:text-foreground transition-colors"
-        >
-          @{INSTAGRAM}
-        </a>
       </div>
 
       {/* Link columns */}
@@ -93,6 +116,7 @@ export function Footer() {
             <FooterList>
               <FooterLink href="/categoria/Blusas">Blusas</FooterLink>
               <FooterLink href="/categoria/Camisetas">Camisetas</FooterLink>
+              <FooterLink href="/categoria/Calças">Calças</FooterLink>
               <FooterLink href="/categoria/Shorts">Shorts</FooterLink>
               <FooterLink href="/categoria/Chinelas">Chinelas</FooterLink>
               <FooterLink href="/categoria/Kits">Kits</FooterLink>
@@ -122,7 +146,7 @@ export function Footer() {
                   <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 text-[#25D366]">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347M12.05 21.785h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
                   </svg>
-                  <span>WhatsApp · (88) 8162-3640</span>
+                  <span>WhatsApp · {waDisplay}</span>
                 </a>
               </li>
               <li>
@@ -131,60 +155,50 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/politica" className="text-foreground/80 hover:text-foreground transition-colors">
+                <Link href="/privacidade" className="text-foreground/80 hover:text-foreground transition-colors">
                   Política de privacidade
                 </Link>
               </li>
               <li>
-                <Link href="/contato" className="text-foreground/80 hover:text-foreground transition-colors">
+                <Link href="/politica" className="text-foreground/80 hover:text-foreground transition-colors">
                   Frete e entrega
                 </Link>
               </li>
             </ul>
+          </div>
+        </div>
+      </div>
 
-            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-[10px] uppercase tracking-[0.25em] text-muted">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-foreground/60 opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-foreground" />
-              </span>
-              Online · seg a sex, 9h às 18h
+      {/* Security seal */}
+      <div className="border-t border-line">
+        <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/selo.png"
+            alt="Selo de segurança HYPADO"
+            className="h-12 md:h-14 w-auto object-contain"
+            style={{ animation: "none" }}
+          />
+          <div className="text-center sm:text-left max-w-xs">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-muted">Site verificado</div>
+            <div className="mt-1 text-xs md:text-sm text-foreground/80 leading-relaxed">
+              Compra protegida, dados criptografados e atendimento humano em todas as etapas.
             </div>
           </div>
         </div>
       </div>
 
-      {/* Trust row */}
+      {/* Pagamento + entrega */}
       <div className="border-t border-line">
-        <div className="mx-auto max-w-7xl px-4 md:px-6 py-5 md:py-6 flex flex-wrap items-center justify-center md:justify-between gap-4 text-[10px] uppercase tracking-[0.3em] text-muted">
-          <div className="flex items-center gap-2">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-              <path d="M12 2 4 5v6c0 4.5 3.4 8.7 8 10 4.6-1.3 8-5.5 8-10V5l-8-3Z" />
-              <path d="m9 12 2 2 4-4" />
-            </svg>
-            <span>Pagamento seguro</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-              <rect x="2.5" y="6" width="19" height="12" rx="2" />
-              <path d="M2.5 10h19M6 15h3" />
-            </svg>
-            <span>Pix · Cartão · Boleto</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-              <path d="M3 7h11l1.5 3H21l-1 7h-3" />
-              <path d="M3 7v9h2" />
-              <circle cx="7.5" cy="17.5" r="2" />
-              <circle cx="17.5" cy="17.5" r="2" />
-            </svg>
-            <span>Envio Brasil todo</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-              <path d="M3 12a9 9 0 1 0 9-9" />
-              <path d="M3 4v5h5" />
-            </svg>
-            <span>Troca em 7 dias</span>
+        <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8 flex flex-col items-center md:items-start gap-2.5">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-muted">Formas de pagamento</div>
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
+            <PayMarkImg label="Pix" src="/brand/pix.png" />
+            <PayMark label="Visa"><VisaMark /></PayMark>
+            <PayMark label="Mastercard"><MastercardMark /></PayMark>
+            <PayMarkImg label="Elo" src="/brand/elo.png" />
+            <PayMark label="Hipercard"><HipercardMark /></PayMark>
+            <PayMark label="Boleto"><BoletoMark /></PayMark>
           </div>
         </div>
       </div>
@@ -197,6 +211,80 @@ export function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+/** Onda animada na divisão branco (home) → preto (footer).
+   Três camadas de profundidade no mesmo sentido (parallax suave) + um degradê
+   sutil na onda da frente, dando dimensão sobre o preto do rodapé.
+   Path = topo reto em y=0 (branco), borda inferior ondulada. 8 segmentos de
+   150px = 1200 de largura, com 2 períodos por bloco de 600 → loop perfeito ao
+   transladar -50% num SVG de 200% de largura. */
+function WaveDivider() {
+  // Curva inferior com cristas suaves e arredondadas. O topo fecha bem acima
+  // (y=-40) pra que a respiração vertical nunca exponha o fundo no limite de cima.
+  const wavePath =
+    "M0,44 q75,-24,150,0 q75,24,150,0 q75,-24,150,0 q75,24,150,0 " +
+    "q75,-24,150,0 q75,24,150,0 q75,-24,150,0 q75,24,150,0 L1200,-40 L0,-40 Z";
+
+  const layers = [
+    { speed: 13, opacity: 0.12, dy: 14, bob: "4px", bobDur: "8s", bobDelay: "0s" }, // fundo distante
+    { speed: 11, opacity: 0.28, dy: 7, bob: "3px", bobDur: "6.5s", bobDelay: "-2.5s" }, // meio
+  ];
+
+  return (
+    <div
+      aria-hidden
+      className="absolute left-0 right-0 top-0 h-12 md:h-[4.5rem] overflow-hidden pointer-events-none"
+    >
+      <svg width="0" height="0" className="absolute">
+        <defs>
+          <linearGradient id="hp-wave-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#ececec" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      {/* Camadas de profundidade — drift horizontal (svg) + respiração vertical (g) */}
+      {layers.map((l, i) => (
+        <svg
+          key={i}
+          className="hp-wave-anim absolute inset-0 h-full w-[200%]"
+          viewBox="0 0 1200 100"
+          preserveAspectRatio="none"
+          style={{ animation: `hp-wave-drift ${l.speed}s linear infinite` }}
+        >
+          <g
+            className="hp-wave-bob"
+            style={
+              {
+                "--bob": l.bob,
+                "--bob-dur": l.bobDur,
+                "--bob-delay": l.bobDelay,
+              } as React.CSSProperties
+            }
+          >
+            <path d={wavePath} fill="#ffffff" opacity={l.opacity} transform={`translate(0,${l.dy})`} />
+          </g>
+        </svg>
+      ))}
+
+      {/* Camada da frente — onda principal com degradê sutil */}
+      <svg
+        className="hp-wave-anim absolute inset-0 h-full w-[200%]"
+        viewBox="0 0 1200 100"
+        preserveAspectRatio="none"
+        style={{ animation: "hp-wave-drift 9s linear infinite" }}
+      >
+        <g
+          className="hp-wave-bob"
+          style={{ "--bob": "2.5px", "--bob-dur": "5.5s", "--bob-delay": "-1s" } as React.CSSProperties}
+        >
+          <path d={wavePath} fill="url(#hp-wave-grad)" />
+        </g>
+      </svg>
+    </div>
   );
 }
 
@@ -235,6 +323,115 @@ function FooterHeading({ children }: { children: React.ReactNode }) {
 
 function FooterList({ children }: { children: React.ReactNode }) {
   return <ul className="space-y-2.5 md:space-y-3 text-xs md:text-sm">{children}</ul>;
+}
+
+function PayMark({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      aria-label={label}
+      title={label}
+      className="inline-flex items-center justify-center h-9 md:h-10 w-14 md:w-16 rounded-lg border border-white/10 bg-white/[0.04]"
+    >
+      {children}
+    </span>
+  );
+}
+
+function PayMarkImg({ label, src }: { label: string; src: string }) {
+  // Bandeira via imagem oficial — selo branco pra ficar legível sobre o rodapé escuro.
+  return (
+    <span
+      aria-label={label}
+      title={label}
+      className="inline-flex items-center justify-center h-9 md:h-10 w-14 md:w-16 rounded-lg border border-white/10 bg-white/[0.04]"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={label} className="max-h-4 md:max-h-[18px] w-auto object-contain" />
+    </span>
+  );
+}
+
+function VisaMark() {
+  // Wordmark branca com barras azul (topo) e amarela (base).
+  return (
+    <svg viewBox="0 0 56 24" className="h-4 md:h-[18px] w-auto" aria-hidden>
+      <rect x="6" y="3.5" width="44" height="2.4" fill="#1A1F71" />
+      <rect x="6" y="18.1" width="44" height="2.4" fill="#F7B600" />
+      <text
+        x="28"
+        y="16.5"
+        textAnchor="middle"
+        fill="#ffffff"
+        fontFamily="Georgia, 'Times New Roman', serif"
+        fontSize="14"
+        fontStyle="italic"
+        fontWeight="900"
+        letterSpacing="0.5"
+      >
+        VISA
+      </text>
+    </svg>
+  );
+}
+
+function MastercardMark() {
+  // Dois círculos sobrepostos: vermelho + laranja, interseção âmbar.
+  return (
+    <svg viewBox="0 0 40 24" className="h-5 md:h-6 w-auto" aria-hidden>
+      <circle cx="16" cy="12" r="8" fill="#EB001B" />
+      <circle cx="24" cy="12" r="8" fill="#F79E1B" />
+      <path
+        d="M20 5.6a8 8 0 0 1 0 12.8 8 8 0 0 1 0-12.8Z"
+        fill="#FF5F00"
+      />
+    </svg>
+  );
+}
+
+
+function HipercardMark() {
+  // Parallelogramo vermelho com "HIPERCARD" branco em itálico.
+  return (
+    <svg viewBox="0 0 64 24" className="h-4 md:h-[18px] w-auto" aria-hidden>
+      <path d="M8 4 H60 L56 20 H4 Z" fill="#B0202E" />
+      <text
+        x="32"
+        y="15.5"
+        textAnchor="middle"
+        fill="#ffffff"
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontSize="8"
+        fontStyle="italic"
+        fontWeight="800"
+        letterSpacing="0.2"
+      >
+        HIPERCARD
+      </text>
+    </svg>
+  );
+}
+
+function BoletoMark() {
+  // Código de barras branco.
+  return (
+    <svg viewBox="0 0 40 24" className="h-5 md:h-6 w-auto" fill="#ffffff" aria-hidden>
+      <rect x="6" y="5" width="1.8" height="14" />
+      <rect x="9.5" y="5" width="1" height="14" />
+      <rect x="12.5" y="5" width="2.4" height="14" />
+      <rect x="16.5" y="5" width="1" height="14" />
+      <rect x="19" y="5" width="1.8" height="14" />
+      <rect x="22.5" y="5" width="3" height="14" />
+      <rect x="27" y="5" width="1" height="14" />
+      <rect x="30" y="5" width="1.8" height="14" />
+      <rect x="33.5" y="5" width="2.4" height="14" />
+    </svg>
+  );
 }
 
 function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { formatBRL } from "@/lib/format";
+import { ProductRow } from "./_components/ProductRow";
+import { RealtimeRefresh } from "../_components/RealtimeRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +63,7 @@ export default async function ProductsListPage({
 
   return (
     <div>
+      <RealtimeRefresh table="Product" />
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
         <div>
           <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">HYPADO · catálogo</div>
@@ -83,20 +86,22 @@ export default async function ProductsListPage({
 
       {/* KPIs */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <KpiCard label="Cadastrados" value={String(products.length)} hint={`${totalActive} ativos`} />
+        <KpiCard label="Cadastrados" value={String(products.length)} hint={`${totalActive} ativos`} icon="box" />
         <KpiCard
           label="Estoque total"
           value={totalStock.toLocaleString("pt-BR")}
           hint="unidades disponíveis"
           accent={totalStock === 0 ? "warn" : "default"}
+          icon="layers"
         />
         <KpiCard
           label="Sem estoque"
           value={String(outCount)}
           hint="produtos esgotados"
           accent={outCount > 0 ? "danger" : "success"}
+          icon="alert"
         />
-        <KpiCard label="Valor em estoque" value={formatBRL(inventoryValue)} hint="preço × unidades" />
+        <KpiCard label="Valor em estoque" value={formatBRL(inventoryValue)} hint="preço × unidades" icon="money" />
       </section>
 
       {/* Filtros */}
@@ -141,106 +146,30 @@ export default async function ProductsListPage({
           actionHref="/admin/produtos/novo"
         />
       ) : (
-        <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-left text-[10px] uppercase tracking-[0.18em] text-neutral-500 font-medium">
-              <tr>
-                <th className="p-3 w-14"></th>
-                <th className="p-3">Produto</th>
-                <th className="p-3 hidden md:table-cell">Categoria</th>
-                <th className="p-3 hidden lg:table-cell">Vendas 30d</th>
-                <th className="p-3 hidden lg:table-cell">Views 30d</th>
-                <th className="p-3">Preço</th>
-                <th className="p-3 hidden sm:table-cell">Estoque</th>
-                <th className="p-3 w-24">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {products.map((p) => {
-                const stock = p.variants.reduce((a, v) => a + v.stock, 0);
-                const img = p.images[0]?.url;
-                const sale = salesMap.get(p.id);
-                const views = viewsMap.get(p.id) || 0;
-                const stockTone =
-                  stock === 0
-                    ? "text-rose-700 bg-rose-50"
-                    : stock < 10
-                    ? "text-amber-700 bg-amber-50"
-                    : "text-neutral-700 bg-neutral-50";
-                return (
-                  <tr key={p.id} className="hover:bg-neutral-50/70 transition-colors">
-                    <td className="p-3">
-                      <Link href={`/admin/produtos/${p.id}`} className="block">
-                        {img ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={img}
-                            alt=""
-                            className="w-11 h-11 rounded-lg object-cover bg-neutral-100 border border-neutral-200"
-                            style={{ animation: "none" }}
-                          />
-                        ) : (
-                          <div className="w-11 h-11 rounded-lg bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-300">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-5 h-5">
-                              <rect x="3" y="5" width="18" height="14" rx="2" />
-                              <circle cx="9" cy="11" r="1.5" />
-                              <path d="m21 17-5-5-7 7" />
-                            </svg>
-                          </div>
-                        )}
-                      </Link>
-                    </td>
-                    <td className="p-3 min-w-0">
-                      <Link href={`/admin/produtos/${p.id}`} className="font-medium hover:underline block truncate max-w-[260px]">
-                        {p.name}
-                      </Link>
-                      <div className="text-[11px] text-neutral-500 flex items-center gap-2">
-                        <span className="font-mono">/{p.slug}</span>
-                        {p._count.reviews > 0 && (
-                          <span className="text-amber-600">★ {p._count.reviews}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 hidden md:table-cell text-neutral-700">
-                      <span className="inline-block bg-neutral-100 text-neutral-700 text-[11px] px-2 py-0.5 rounded">
-                        {p.category}
-                      </span>
-                    </td>
-                    <td className="p-3 hidden lg:table-cell">
-                      {sale ? (
-                        <div>
-                          <div className="font-medium tabular-nums">{sale.qty} un</div>
-                          <div className="text-[11px] text-neutral-500 tabular-nums">{formatBRL(sale.rev)}</div>
-                        </div>
-                      ) : (
-                        <span className="text-neutral-300">—</span>
-                      )}
-                    </td>
-                    <td className="p-3 hidden lg:table-cell tabular-nums text-neutral-700">
-                      {views > 0 ? views.toLocaleString("pt-BR") : <span className="text-neutral-300">—</span>}
-                    </td>
-                    <td className="p-3 font-semibold tabular-nums">{formatBRL(p.priceCents)}</td>
-                    <td className="p-3 hidden sm:table-cell">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium tabular-nums ${stockTone}`}>
-                        {stock} un
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                          p.active ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-neutral-100 text-neutral-600 border border-neutral-200"
-                        }`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${p.active ? "bg-emerald-500" : "bg-neutral-400"}`} />
-                        {p.active ? "ativo" : "inativo"}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <ul className="space-y-2.5">
+          {products.map((p) => {
+            const stock = p.variants.reduce((a, v) => a + v.stock, 0);
+            const sale = salesMap.get(p.id);
+            return (
+              <ProductRow
+                key={p.id}
+                p={{
+                  id: p.id,
+                  name: p.name,
+                  slug: p.slug,
+                  category: p.category,
+                  priceCents: p.priceCents,
+                  active: p.active,
+                  stock,
+                  reviews: p._count.reviews,
+                  imageUrl: p.images[0]?.url ?? null,
+                  sales: sale ? { qty: sale.qty, rev: sale.rev } : null,
+                  views: viewsMap.get(p.id) || 0,
+                }}
+              />
+            );
+          })}
+        </ul>
       )}
     </div>
   );
@@ -271,16 +200,27 @@ function Pill({ href, active, children }: { href: string; active: boolean; child
   );
 }
 
+const KPI_ICONS: Record<string, React.ReactNode> = {
+  box: (
+    <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5v-9ZM3 7.5 12 12m0 0 9-4.5M12 12v9" />
+  ),
+  layers: <path d="m12 2 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 17l9 5 9-5" />,
+  alert: <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />,
+  money: <><circle cx="12" cy="12" r="9" /><path d="M12 7v10M9.5 9.5c0-1 1.1-1.5 2.5-1.5s2.5.5 2.5 1.5-1 1.4-2.5 1.5-2.5.6-2.5 1.5 1.1 1.5 2.5 1.5 2.5-.5 2.5-1.5" /></>,
+};
+
 function KpiCard({
   label,
   value,
   hint,
   accent,
+  icon,
 }: {
   label: string;
   value: string;
   hint?: string;
   accent?: "default" | "warn" | "danger" | "success";
+  icon?: keyof typeof KPI_ICONS;
 }) {
   const tone =
     accent === "warn"
@@ -290,9 +230,24 @@ function KpiCard({
       : accent === "success"
       ? "border-emerald-200 bg-gradient-to-br from-emerald-50/70 to-white"
       : "border-neutral-200 bg-white";
+  const iconTone =
+    accent === "warn"
+      ? "text-amber-500"
+      : accent === "danger"
+      ? "text-rose-500"
+      : accent === "success"
+      ? "text-emerald-500"
+      : "text-neutral-400";
   return (
-    <div className={`rounded-2xl border p-3.5 md:p-4 ${tone}`}>
-      <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-500 font-medium">{label}</div>
+    <div className={`rounded-2xl border p-3.5 md:p-4 transition-shadow hover:shadow-sm ${tone}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-500 font-medium">{label}</div>
+        {icon && KPI_ICONS[icon] && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 shrink-0 ${iconTone}`}>
+            {KPI_ICONS[icon]}
+          </svg>
+        )}
+      </div>
       <div className="mt-1.5 text-xl md:text-2xl font-semibold tracking-tight tabular-nums">{value}</div>
       {hint && <div className="mt-0.5 text-[11px] text-neutral-500">{hint}</div>}
     </div>

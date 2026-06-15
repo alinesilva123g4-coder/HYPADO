@@ -80,35 +80,6 @@ export function SettingsForm({ initial }: { initial: SiteSettings }) {
         </Grid>
       </Section>
 
-      <Section title="Frete">
-        <Grid>
-          <Field label="Frete grátis a partir de (R$)">
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              value={(s.freeShippingFromCents / 100).toFixed(2)}
-              onChange={(e) =>
-                update("freeShippingFromCents", Math.round(parseFloat(e.target.value || "0") * 100))
-              }
-              className="input"
-            />
-          </Field>
-          <Field label="Frete padrão (R$)">
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              value={(s.flatShippingCents / 100).toFixed(2)}
-              onChange={(e) =>
-                update("flatShippingCents", Math.round(parseFloat(e.target.value || "0") * 100))
-              }
-              className="input"
-            />
-          </Field>
-        </Grid>
-      </Section>
-
       <Section title="Home — destaque (opcional)">
         <Field label="Título (sobrescreve o default)">
           <input

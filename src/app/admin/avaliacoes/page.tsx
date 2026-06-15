@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ReviewRow } from "./_components/ReviewRow";
+import { RealtimeRefresh } from "../_components/RealtimeRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function ReviewsPage({
 
   return (
     <div>
+      <RealtimeRefresh table="Review" insertLabel="Nova avaliação recebida ⭐" />
       <header className="mb-6">
         <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">HYPADO · social proof</div>
         <h1 className="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">Avaliações</h1>

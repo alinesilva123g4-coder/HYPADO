@@ -12,14 +12,20 @@ const LINKS: NavItem[] = [
   {
     label: "Blusas",
     href: "/categoria/Blusas",
-    image: "/products/Blusas/01/SaveClip.App_641328365_17995342235878696_4773564334849960735_n.jpg",
+    image: "https://czhmdjytqbgdmlpxmjiw.supabase.co/storage/v1/object/public/hypado-uploads/products/baruk-oversized-preto-floral-mpx76kz5.jpg",
     tagline: "Modelagem oversized, algodão pesado.",
   },
   {
     label: "Camisetas",
     href: "/categoria/Camisetas",
-    image: "/products/Camisetas/01/SaveClip.App_622077576_17865846720563810_8673686830803046630_n.jpg",
+    image: "https://czhmdjytqbgdmlpxmjiw.supabase.co/storage/v1/object/public/hypado-uploads/products/pow-jeans-rose-mpx76oeu.jpg",
     tagline: "Algodão peruano, caimento premium.",
+  },
+  {
+    label: "Calças",
+    href: "/categoria/Calças",
+    image: "https://czhmdjytqbgdmlpxmjiw.supabase.co/storage/v1/object/public/hypado-uploads/products/calca-skinny-black-mq406wap.png",
+    tagline: "Jeans skinny premium, caimento que valoriza.",
   },
   {
     label: "Shorts",

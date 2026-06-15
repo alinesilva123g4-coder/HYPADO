@@ -170,36 +170,63 @@ export function Reviews({ productId, productName, initialReviews }: Props) {
   const isEmpty = reviews.length === 0;
 
   return (
-    <section className="theme-invert relative overflow-hidden border-t border-line bg-background text-foreground">
-      {/* Giant brand watermark — cropped "H" */}
+    <section className="theme-invert relative isolate overflow-hidden border-t border-line bg-background text-foreground">
+      {/* Ambiência do fundo — profundidade + textura + marca suave */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 overflow-hidden"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
       >
+        {/* Brilho radial no topo — tira o "preto chapado" e cria foco */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(115% 75% at 50% -8%, rgba(255,255,255,0.08), transparent 55%)",
+          }}
+        />
+        {/* Grade fina de pontos — textura discreta, esmaecida nas bordas */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)",
+            backgroundSize: "26px 26px",
+            maskImage:
+              "radial-gradient(85% 65% at 50% 38%, #000 0%, transparent 78%)",
+            WebkitMaskImage:
+              "radial-gradient(85% 65% at 50% 38%, #000 0%, transparent 78%)",
+          }}
+        />
+        {/* Marca d'água centralizada e suavizada com máscara (não fica cortada) */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/brand/logo-mark.png"
           alt=""
-          style={{ animation: "none", opacity: 0.03 }}
-          className="absolute left-[-48%] md:left-[-38%] top-1/2 -translate-y-1/2 w-[260%] md:w-[180%] max-w-none [filter:brightness(0)_invert(1)] select-none"
+          style={{
+            animation: "none",
+            maskImage: "radial-gradient(closest-side, #000 40%, transparent)",
+            WebkitMaskImage:
+              "radial-gradient(closest-side, #000 40%, transparent)",
+          }}
+          className="absolute left-1/2 top-1/2 w-[150%] md:w-[85%] max-w-none -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.03] [filter:brightness(0)_invert(1)]"
         />
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-28">
+      <div className="relative mx-auto max-w-7xl px-6 py-12 md:py-16">
         {!isEmpty && (
-          <h2 className="text-3xl md:text-5xl font-medium leading-[1.05] tracking-tight">
+          <h2 className="text-2xl md:text-4xl font-medium leading-[1.05] tracking-tight">
             O que a galera tá falando
           </h2>
         )}
 
         {/* Stats/invite + always-visible compact form */}
-        <div className={`grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-8 lg:gap-12 items-start ${isEmpty ? "" : "mt-8"}`}>
+        <div className={`grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6 lg:gap-10 items-start ${isEmpty ? "" : "mt-6"}`}>
           {isEmpty ? (
             <div className="text-center lg:text-left">
-              <h3 className="gothic text-5xl md:text-6xl leading-[0.92] tracking-tight">
+              <h3 className="gothic text-4xl md:text-5xl leading-[0.92] tracking-tight">
                 Conta como<br />ficou em você.
               </h3>
-              <p className="mt-5 text-sm md:text-base text-foreground/75 leading-relaxed max-w-md mx-auto lg:mx-0">
+              <p className="mt-4 text-sm md:text-base text-foreground/75 leading-relaxed max-w-md mx-auto lg:mx-0">
                 Tira uma foto, grava um vídeo curto, escreve duas linhas.
                 Sua palavra ajuda a próxima pessoa a confiar na marca.
               </p>
@@ -207,16 +234,16 @@ export function Reviews({ productId, productName, initialReviews }: Props) {
           ) : (
             <div>
               <div className="flex items-baseline gap-3">
-                <div className="gothic text-6xl md:text-7xl leading-none">
+                <div className="gothic text-5xl md:text-6xl leading-none">
                   {stats.avg.toFixed(1)}
                 </div>
                 <div className="text-xs text-muted">de 5</div>
               </div>
               <StarRating rating={stats.avg} size="md" className="mt-2" />
-              <div className="mt-2 text-xs text-muted">
+              <div className="mt-1.5 text-xs text-muted">
                 {stats.count} {stats.count === 1 ? "avaliação" : "avaliações"}
               </div>
-              <div className="mt-5 space-y-1.5 max-w-xs">
+              <div className="mt-4 space-y-1 max-w-xs">
                 {[5, 4, 3, 2, 1].map((star) => {
                   const c = stats.dist[star - 1];
                   const pct = stats.count > 0 ? (c / stats.count) * 100 : 0;
@@ -247,7 +274,7 @@ export function Reviews({ productId, productName, initialReviews }: Props) {
         {/* List */}
         {reviews.length > 0 && (
           <>
-            <div className="mt-16 flex items-end justify-between gap-4 border-b border-line pb-4">
+            <div className="mt-10 flex items-end justify-between gap-4 border-b border-line pb-3">
               <div className="text-[10px] uppercase tracking-[0.3em] text-muted">
                 {stats.count} {stats.count === 1 ? "avaliação" : "avaliações"}
               </div>
@@ -275,7 +302,7 @@ export function Reviews({ productId, productName, initialReviews }: Props) {
               </div>
             </div>
 
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
               {visible.map((r) => (
                 <ReviewCard
                   key={r.id}
@@ -290,10 +317,10 @@ export function Reviews({ productId, productName, initialReviews }: Props) {
             </div>
 
             {sortedReviews.length > 4 && (
-              <div className="mt-10 text-center">
+              <div className="mt-8 text-center">
                 <button
                   onClick={() => setShowAll((s) => !s)}
-                  className="btn-trace inline-flex items-center gap-2 text-xs uppercase tracking-widest border border-foreground rounded-md px-6 py-3 hover:bg-foreground hover:text-background transition-colors"
+                  className="btn-trace inline-flex items-center gap-2 text-xs uppercase tracking-widest border border-foreground rounded-md px-6 py-2.5 hover:bg-foreground hover:text-background transition-colors"
                 >
                   {showAll ? "Mostrar menos" : `Ver todas (${sortedReviews.length})`}
                 </button>
@@ -326,7 +353,7 @@ function ReviewCard({
   const visibleReplies = showAllReplies ? replies : replies.slice(0, 2);
 
   return (
-    <article className="border-b border-line pb-8">
+    <article className="border-b border-line pb-6">
       <div className="flex items-start gap-4">
         <div className="h-11 w-11 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0">
           {initials(review.authorName)}
@@ -801,6 +828,7 @@ function ReviewForm({
           city: draft.city.trim(),
           title: draft.title.trim(),
           body: draft.body.trim(),
+          sessionId: getSessionId(),
           media: draft.media.map((m) => ({ url: m.url, type: m.type })),
         }),
       });
@@ -811,8 +839,17 @@ function ReviewForm({
       setThanks(true);
       setDraft({ rating: 0, name: "", city: "", title: "", body: "", media: [] });
       setTimeout(() => setThanks(false), 2500);
-    } catch {
-      setError("Deu ruim aqui. Tenta de novo em alguns segundos.");
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "fail";
+      setError(
+        code === "already_reviewed"
+          ? "Você já avaliou este produto. Obrigado! Uma avaliação por produto já ajuda muito."
+          : code === "duplicate"
+          ? "Essa avaliação já foi enviada. Não precisa mandar de novo. 😉"
+          : code === "rate_limited"
+          ? "Calma aí! Muitas tentativas seguidas. Espera um minutinho e tenta de novo."
+          : "Deu ruim aqui. Tenta de novo em alguns segundos.",
+      );
     } finally {
       setSubmitting(false);
     }

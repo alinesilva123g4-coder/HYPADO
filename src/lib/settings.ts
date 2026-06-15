@@ -14,7 +14,6 @@ export type SiteSettings = {
 const DEFAULTS: SiteSettings = {
   announceMessages: [
     "Drop limitado · sem reposição",
-    "Frete grátis acima de R$ 299",
     "Feito no Nordeste · enviado pra todo o Brasil",
     "Pagamento em até 3x sem juros",
   ],

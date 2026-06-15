@@ -1,25 +1,33 @@
-import { cookies } from "next/headers";
-import { createHash } from "node:crypto";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
-export const ADMIN_COOKIE = "hypado_admin";
-
-function tokenFor(pw: string) {
-  return createHash("sha256").update(`hypado::${pw}`).digest("hex");
-}
-
-export function expectedToken() {
-  const pw = process.env.ADMIN_PASSWORD;
-  if (!pw) return null;
-  return tokenFor(pw);
-}
-
-export function makeToken(pw: string) {
-  return tokenFor(pw);
-}
-
+/**
+ * Verifica se o request atual tem um usuário Supabase autenticado.
+ *
+ * Modelo atual: qualquer usuário autenticado no Supabase é admin
+ * (justificado porque só o fundador tem conta cadastrada hoje).
+ *
+ * Quando precisar de roles, troque a checagem por algo como:
+ *   const role = user?.app_metadata?.role;
+ *   return role === "admin";
+ */
 export async function isAdmin() {
-  const exp = expectedToken();
-  if (!exp) return false;
-  const jar = await cookies();
-  return jar.get(ADMIN_COOKIE)?.value === exp;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data?.user) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Retorna o usuário autenticado (ou null). Use em páginas/admin pra exibir e-mail. */
+export async function getAdminUser() {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase.auth.getUser();
+    return data?.user ?? null;
+  } catch {
+    return null;
+  }
 }

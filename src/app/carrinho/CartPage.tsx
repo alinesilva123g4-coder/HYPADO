@@ -8,14 +8,21 @@ import { whatsappLink } from "@/lib/whatsapp";
 import { haptic } from "@/lib/feedback";
 import { CheckoutSheet } from "./CheckoutSheet";
 
-export function CartPage() {
+type CartPageProps = {
+  shopOpen: boolean;
+  whatsappNumber: string;
+};
+
+export function CartPage({
+  shopOpen,
+  whatsappNumber,
+}: CartPageProps) {
   const { items, count, subtotalCents, setQty, remove, clear, hydrated } = useCart();
 
-  const shipping = subtotalCents >= 29900 ? 0 : subtotalCents > 0 ? 2490 : 0;
-  const total = subtotalCents + shipping;
+  const total = subtotalCents;
 
-  const waMessage = buildWhatsappMessage(items, subtotalCents, shipping, total);
-  const waLink = whatsappLink(waMessage);
+  const waMessage = buildWhatsappMessage(items, subtotalCents, total);
+  const waLink = whatsappLink(waMessage, whatsappNumber);
 
   return (
     <>
@@ -42,19 +49,19 @@ export function CartPage() {
             <div className="border-t border-line">
               {items.map((item) => (
                 <CartRow
-                  key={`${item.productId}-${item.size}`}
+                  key={`${item.productId}-${item.size}-${item.color ?? ""}`}
                   item={item}
                   onInc={() => {
                     haptic(6);
-                    setQty(item.productId, item.size, item.qty + 1);
+                    setQty(item.productId, item.size, item.qty + 1, item.color);
                   }}
                   onDec={() => {
                     haptic(6);
-                    setQty(item.productId, item.size, item.qty - 1);
+                    setQty(item.productId, item.size, item.qty - 1, item.color);
                   }}
                   onRemove={() => {
                     haptic([8, 30, 14]);
-                    remove(item.productId, item.size);
+                    remove(item.productId, item.size, item.color);
                   }}
                 />
               ))}
@@ -88,19 +95,8 @@ export function CartPage() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted">Frete</dt>
-                  <dd className="tabular-nums">
-                    {shipping === 0 ? (
-                      <span className="text-emerald-600">Grátis</span>
-                    ) : (
-                      formatBRL(shipping)
-                    )}
-                  </dd>
+                  <dd className="tabular-nums text-foreground/70">a combinar</dd>
                 </div>
-                {shipping > 0 && (
-                  <div className="text-[11px] text-muted">
-                    Faltam {formatBRL(29900 - subtotalCents)} para frete grátis
-                  </div>
-                )}
                 <div className="border-t border-line pt-3 flex justify-between text-base">
                   <dt className="font-medium">Total</dt>
                   <dd className="tabular-nums font-medium">{formatBRL(total)}</dd>
@@ -110,14 +106,24 @@ export function CartPage() {
                 </div>
               </dl>
 
-              <CheckoutSheet
-                count={count}
-                subtotalCents={subtotalCents}
-                shippingCents={shipping}
-                totalCents={total}
-                waLink={waLink}
-                messagePreview={waMessage}
-              />
+              {shopOpen ? (
+                <CheckoutSheet
+                  count={count}
+                  subtotalCents={subtotalCents}
+                  totalCents={total}
+                  waLink={waLink}
+                  messagePreview={waMessage}
+                />
+              ) : (
+                <div className="mt-5 md:mt-6 rounded-md border border-line bg-surface px-4 py-4 text-center">
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-muted">
+                    Loja fechada
+                  </div>
+                  <p className="mt-1.5 text-xs md:text-sm text-foreground/80">
+                    Estamos preparando o próximo drop. Volta logo.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 grid grid-cols-3 gap-2 text-center">
@@ -171,7 +177,9 @@ function CartRow({
         >
           {item.name}
         </Link>
-        <div className="mt-0.5 md:mt-1 text-[11px] md:text-xs text-muted">Tam · {item.size}</div>
+        <div className="mt-0.5 md:mt-1 text-[11px] md:text-xs text-muted">
+          {item.color ? `${item.color} · Tam ${item.size}` : `Tam · ${item.size}`}
+        </div>
 
         <div className="mt-auto pt-2 md:pt-3 flex items-center gap-3 md:gap-4">
           <div className="inline-flex items-center border border-line rounded-md">
@@ -267,23 +275,20 @@ function Badge({ title, sub }: { title: string; sub: string }) {
 function buildWhatsappMessage(
   items: CartItem[],
   subtotalCents: number,
-  shippingCents: number,
   totalCents: number,
 ) {
   if (items.length === 0) return "Olá, HYPADO! Quero comprar.";
   const lines = items
     .map(
       (i) =>
-        `• ${i.name} (${i.size}) × ${i.qty} · ${formatBRL(i.priceCents * i.qty)}`,
+        `• ${i.name} (${[i.color, i.size].filter(Boolean).join(" · ")}) × ${i.qty} · ${formatBRL(i.priceCents * i.qty)}`,
     )
     .join("\n");
-  const frete = shippingCents === 0 ? "Grátis" : formatBRL(shippingCents);
   return (
     `Olá, HYPADO! Quero finalizar meu pedido:\n\n` +
     `${lines}\n\n` +
     `Subtotal: ${formatBRL(subtotalCents)}\n` +
-    `Frete: ${frete}\n` +
     `*Total: ${formatBRL(totalCents)}*\n\n` +
-    `Pode confirmar pagamento e envio?`
+    `Frete a combinar. Pode confirmar pagamento e envio?`
   );
 }

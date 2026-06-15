@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { track } from "@/lib/track";
 
 export type CartItem = {
   productId: string;
@@ -16,17 +17,24 @@ export type CartItem = {
   category: string;
   image: string;
   size: string;
+  color?: string;
   priceCents: number;
   qty: number;
 };
+
+// Duas linhas da sacola são a mesma só se produto + tamanho + cor baterem.
+const sameLine = (
+  a: { productId: string; size: string; color?: string },
+  b: { productId: string; size: string; color?: string },
+) => a.productId === b.productId && a.size === b.size && a.color === b.color;
 
 type CartContextValue = {
   items: CartItem[];
   count: number;
   subtotalCents: number;
   add: (item: Omit<CartItem, "qty">, qty?: number) => void;
-  remove: (productId: string, size: string) => void;
-  setQty: (productId: string, size: string, qty: number) => void;
+  remove: (productId: string, size: string, color?: string) => void;
+  setQty: (productId: string, size: string, qty: number, color?: string) => void;
   clear: () => void;
   hydrated: boolean;
 };
@@ -55,9 +63,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const add = useCallback((item: Omit<CartItem, "qty">, qty = 1) => {
     setItems((prev) => {
-      const idx = prev.findIndex(
-        (i) => i.productId === item.productId && i.size === item.size,
-      );
+      const idx = prev.findIndex((i) => sameLine(i, item));
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = { ...next[idx], qty: next[idx].qty + qty };
@@ -65,25 +71,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { ...item, qty }];
     });
+    track("add_to_cart", {
+      productId: item.productId,
+      meta: { size: item.size, color: item.color, qty, priceCents: item.priceCents },
+    });
   }, []);
 
-  const remove = useCallback((productId: string, size: string) => {
+  const remove = useCallback((productId: string, size: string, color?: string) => {
     setItems((prev) =>
-      prev.filter((i) => !(i.productId === productId && i.size === size)),
+      prev.filter((i) => !sameLine(i, { productId, size, color })),
     );
   }, []);
 
-  const setQty = useCallback((productId: string, size: string, qty: number) => {
-    setItems((prev) =>
-      prev
-        .map((i) =>
-          i.productId === productId && i.size === size
-            ? { ...i, qty: Math.max(0, qty) }
-            : i,
-        )
-        .filter((i) => i.qty > 0),
-    );
-  }, []);
+  const setQty = useCallback(
+    (productId: string, size: string, qty: number, color?: string) => {
+      setItems((prev) =>
+        prev
+          .map((i) =>
+            sameLine(i, { productId, size, color })
+              ? { ...i, qty: Math.max(0, qty) }
+              : i,
+          )
+          .filter((i) => i.qty > 0),
+      );
+    },
+    [],
+  );
 
   const clear = useCallback(() => setItems([]), []);
 

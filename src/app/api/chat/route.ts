@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { HEITOR_SYSTEM_PROMPT } from "@/lib/chat-context";
+import { buildHeitorSystemPrompt } from "@/lib/chat-context";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -36,6 +36,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "no_user_message" }, { status: 400 });
   }
 
+  const systemPrompt = await buildHeitorSystemPrompt();
+
   const upstream = await fetch(`${BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
@@ -44,11 +46,11 @@ export async function POST(req: Request) {
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 600,
+      max_tokens: 240,
       temperature: 0.7,
       stream: true,
       messages: [
-        { role: "system", content: HEITOR_SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         ...cleaned,
       ],
     }),

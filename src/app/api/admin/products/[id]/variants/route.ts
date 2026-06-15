@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { invalidateHeitorCache } from "@/lib/chat-context";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -9,6 +10,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const v = await prisma.variant.create({
       data: { productId: id, size: String(size), stock: Number(stock) || 0 },
     });
+    invalidateHeitorCache();
     return NextResponse.json(v);
   } catch (e: unknown) {
     if (typeof e === "object" && e !== null && "code" in e && (e as { code: string }).code === "P2002") {
@@ -32,6 +34,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof stock === "number") data.stock = stock;
   if (size) data.size = String(size);
   const v = await prisma.variant.update({ where: { id }, data });
+  invalidateHeitorCache();
   return NextResponse.json(v);
 }
 
@@ -47,5 +50,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   }
 
   await prisma.variant.delete({ where: { id } });
+  invalidateHeitorCache();
   return NextResponse.json({ ok: true });
 }

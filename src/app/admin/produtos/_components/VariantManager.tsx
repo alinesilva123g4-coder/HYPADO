@@ -53,32 +53,74 @@ export function VariantManager({ productId, variants: initial }: { productId: st
 
   return (
     <div>
-      <ul className="divide-y divide-neutral-100 mb-4">
-        {variants.map((v) => (
-          <li key={v.id} className="py-2.5 flex items-center gap-3">
-            <span className="font-medium w-16">{v.size}</span>
-            <input
-              type="number"
-              min={0}
-              defaultValue={v.stock}
-              onBlur={(e) => {
-                const n = parseInt(e.target.value, 10);
-                if (!isNaN(n) && n !== v.stock) updateStock(v, n);
-              }}
-              className="w-24 border border-neutral-300 rounded-md px-2 py-1 text-sm"
-            />
-            <span className="text-xs text-neutral-500 flex-1">
-              {saving === v.id ? "salvando…" : "unidades"}
-            </span>
-            <button
-              type="button"
-              onClick={() => removeVariant(v.id)}
-              className="text-xs text-neutral-500 hover:text-red-600"
-            >
-              remover
-            </button>
-          </li>
-        ))}
+      <ul className="space-y-2 mb-4">
+        {variants.map((v) => {
+          const tone =
+            v.stock === 0
+              ? "border-rose-200 bg-rose-50/50"
+              : v.stock <= 3
+              ? "border-amber-200 bg-amber-50/50"
+              : "border-neutral-200 bg-white";
+          return (
+            <li key={v.id} className={`flex items-center gap-3 rounded-xl border p-2.5 ${tone}`}>
+              <span className="font-semibold w-14 shrink-0 text-sm">{v.size}</span>
+
+              {/* Stepper touch-friendly */}
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => updateStock(v, Math.max(0, v.stock - 1))}
+                  className="w-9 h-9 rounded-lg border border-neutral-300 bg-white text-lg leading-none flex items-center justify-center active:scale-95 transition-transform disabled:opacity-40"
+                  disabled={v.stock <= 0}
+                  aria-label="Diminuir estoque"
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  value={v.stock}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    setVariants((prev) => prev.map((x) => (x.id === v.id ? { ...x, stock: isNaN(n) ? 0 : n } : x)));
+                  }}
+                  onBlur={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    updateStock(v, isNaN(n) || n < 0 ? 0 : n);
+                  }}
+                  className="w-14 h-9 text-center border border-neutral-300 rounded-lg text-sm tabular-nums"
+                />
+                <button
+                  type="button"
+                  onClick={() => updateStock(v, v.stock + 1)}
+                  className="w-9 h-9 rounded-lg border border-neutral-300 bg-white text-lg leading-none flex items-center justify-center active:scale-95 transition-transform"
+                  aria-label="Aumentar estoque"
+                >
+                  +
+                </button>
+              </div>
+
+              <span className="text-[11px] text-neutral-500 flex-1 min-w-0">
+                {saving === v.id ? (
+                  <span className="text-emerald-600">salvando…</span>
+                ) : v.stock === 0 ? (
+                  <span className="text-rose-600 font-medium">esgotado</span>
+                ) : (
+                  "unidades"
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => removeVariant(v.id)}
+                className="text-xs text-neutral-400 hover:text-red-600 shrink-0 px-1"
+                aria-label="Remover tamanho"
+              >
+                remover
+              </button>
+            </li>
+          );
+        })}
         {variants.length === 0 && <li className="py-2 text-sm text-neutral-500">Nenhum tamanho cadastrado.</li>}
       </ul>
 

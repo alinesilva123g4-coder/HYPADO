@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { invalidateHeitorCache } from "@/lib/chat-context";
 
 export async function POST(req: Request) {
   try {
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
         active: !!active,
       },
     });
+    invalidateHeitorCache();
     return NextResponse.json(product);
   } catch (e: any) {
     if (e.code === "P2002") {

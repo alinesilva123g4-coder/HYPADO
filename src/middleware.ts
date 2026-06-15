@@ -1,33 +1,54 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
-async function sha256Hex(input: string) {
-  const data = new TextEncoder().encode(input);
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function expectedToken() {
-  const pw = process.env.ADMIN_PASSWORD;
-  if (!pw) return null;
-  return sha256Hex(`hypado::${pw}`);
-}
-
+/**
+ * Middleware unificado:
+ * 1. Refresca a sessão Supabase em TODA request (necessário pra o cookie
+ *    de auth não expirar entre navegações).
+ * 2. Em rotas /admin e /api/admin, gate por usuário autenticado.
+ *    Modelo atual: qualquer user autenticado = admin (compatível com
+ *    isAdmin() em lib/admin-auth.ts).
+ */
 export async function middleware(req: NextRequest) {
+  let response = NextResponse.next({ request: req });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            req.cookies.set(name, value),
+          );
+          response = NextResponse.next({ request: req });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  // Refresh do token — necessário pra Server Components conseguirem ler.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { pathname } = req.nextUrl;
-  if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
-    return NextResponse.next();
-  }
-  if (pathname === "/admin/login" || pathname === "/api/admin/login") {
-    return NextResponse.next();
+  const isAdminRoute =
+    pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
+  const isLoginPath =
+    pathname === "/admin/login" || pathname === "/api/admin/login";
+
+  if (!isAdminRoute || isLoginPath) {
+    return response;
   }
 
-  const exp = await expectedToken();
-  const tok = req.cookies.get("hypado_admin")?.value;
-  const ok = exp && tok && tok === exp;
-
-  if (!ok) {
+  if (!user) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
@@ -36,9 +57,18 @@ export async function middleware(req: NextRequest) {
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
-  return NextResponse.next();
+
+  return response;
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: [
+    /*
+     * Roda em todas as rotas EXCETO:
+     * - _next/static, _next/image, favicon, arquivos públicos
+     * - rotas de API que não são admin
+     * (mas pra simplificar, casamos todas e o handler decide).
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4|webm|mov)$).*)",
+  ],
 };

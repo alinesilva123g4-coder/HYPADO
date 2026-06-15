@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { formatBRL } from "@/lib/format";
 import { haptic } from "@/lib/feedback";
+import { track } from "@/lib/track";
+import { trackInitiateCheckout, trackContact } from "@/lib/analytics";
 
 type Props = {
   count: number;
   subtotalCents: number;
-  shippingCents: number;
   totalCents: number;
   waLink: string;
   messagePreview: string;
@@ -23,7 +24,6 @@ type Props = {
 export function CheckoutSheet({
   count,
   subtotalCents,
-  shippingCents,
   totalCents,
   waLink,
   messagePreview,
@@ -50,12 +50,21 @@ export function CheckoutSheet({
     haptic(8);
     setHanding(false);
     setOpen(true);
+    track("checkout_started", {
+      meta: { count, subtotalCents, totalCents },
+    });
   }
 
   function handoff() {
     // Gesto direto do usuário → abre o WhatsApp imediatamente (sem bloqueio).
     haptic([8, 30, 14]);
     setHanding(true);
+    trackInitiateCheckout({
+      ids: [],
+      value: totalCents / 100,
+      num_items: count,
+    });
+    trackContact("whatsapp");
     window.open(waLink, "_blank", "noopener,noreferrer");
   }
 
@@ -128,13 +137,7 @@ export function CheckoutSheet({
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted">Frete</dt>
-                    <dd className="tabular-nums">
-                      {shippingCents === 0 ? (
-                        <span className="text-emerald-600">Grátis</span>
-                      ) : (
-                        formatBRL(shippingCents)
-                      )}
-                    </dd>
+                    <dd className="tabular-nums text-foreground/70">a combinar</dd>
                   </div>
                   <div className="flex justify-between border-t border-line pt-2 text-[15px] md:text-base">
                     <dt className="font-medium">Total</dt>

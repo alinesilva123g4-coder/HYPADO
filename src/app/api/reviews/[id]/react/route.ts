@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const ip = getClientIp(req);
+  const rl = rateLimit({ key: `review-react:${ip}`, limit: 20, windowMs: 60_000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
   const { id: reviewId } = await params;
   const { kind, sessionId } = await req.json();
 

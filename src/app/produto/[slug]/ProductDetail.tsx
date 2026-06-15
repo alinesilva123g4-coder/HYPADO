@@ -9,11 +9,24 @@ import { useCart } from "@/lib/cart";
 import { StarRating } from "@/components/product/StarRating";
 import { Reviews } from "@/components/product/Reviews";
 import { haptic, useToast } from "@/lib/feedback";
+import { track } from "@/lib/track";
+import {
+  trackViewContent,
+  trackAddToCart,
+  trackInitiateCheckout,
+  trackContact,
+} from "@/lib/analytics";
 import { SwipeGallery } from "./SwipeGallery";
 import { MobileBuyBar } from "./MobileBuyBar";
 
-type Variant = { id: string; size: string; stock: number };
+type Variant = { id: string; size: string; color: string | null; stock: number };
 type ProductImage = { id: string; url: string };
+type Reply = {
+  id: string;
+  authorName: string;
+  body: string;
+  createdAt: Date | string;
+};
 type Review = {
   id: string;
   rating: number;
@@ -22,7 +35,11 @@ type Review = {
   title: string | null;
   body: string;
   verified: boolean;
+  media: string | null;
+  likes: number;
+  dislikes: number;
   createdAt: Date | string;
+  replies?: Reply[];
 };
 type Product = {
   id: string;
@@ -79,6 +96,20 @@ const CATEGORY_HIGHLIGHTS: Record<
       "Lave do avesso pra prolongar a vida da estampa.",
     ],
   },
+  Calças: {
+    tagline: "Jeans skinny premium, lavagem marcada e caimento que valoriza.",
+    features: [
+      { label: "Tecido", value: "Jeans com elastano" },
+      { label: "Caimento", value: "Skinny fit" },
+      { label: "Lavagem", value: "Acabamento premium" },
+      { label: "Bolsos", value: "Cinco bolsos clássicos" },
+    ],
+    details: [
+      "Elastano na trama pra ajustar ao corpo sem perder o conforto.",
+      "Lavagem trabalhada que segura a cor lavagem após lavagem.",
+      "Costura reforçada nos pontos de tensão. Peça pra durar.",
+    ],
+  },
   Shorts: {
     tagline: "Tactel premium, caimento moderno. Leve pra qualquer rolê.",
     features: [
@@ -132,6 +163,7 @@ export function ProductDetail({
 }) {
   const [activeImage, setActiveImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [pageUrl, setPageUrl] = useState("");
   useEffect(() => {
@@ -143,13 +175,39 @@ export function ProductDetail({
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-  }, [product.id]);
+    track("product_view", {
+      productId: product.id,
+      meta: { slug: product.slug, category: product.category, priceCents: product.priceCents },
+    });
+    trackViewContent({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      priceCents: product.priceCents,
+    });
+  }, [product.id, product.name, product.slug, product.category, product.priceCents]);
 
-  const selectedVariant = product.variants.find((v) => v.size === selectedSize);
+  // Cores disponíveis (produtos sem cor seguem só por tamanho, como antes).
+  const colors = Array.from(
+    new Set(product.variants.map((v) => v.color).filter((c): c is string => !!c)),
+  );
+  const hasColors = colors.length > 0;
+  // Variantes visíveis pro seletor de tamanho dependem da cor escolhida.
+  const visibleVariants = hasColors
+    ? product.variants.filter((v) => v.color === selectedColor)
+    : product.variants;
+  const selectedVariant = visibleVariants.find((v) => v.size === selectedSize);
   const outOfStock = selectedVariant && selectedVariant.stock === 0;
+  const needsColor = hasColors && !selectedColor;
+
+  function pickColor(c: string) {
+    setSelectedColor(c);
+    setSelectedSize(null); // estoque muda por cor — força reescolher o tamanho
+  }
 
   function handleAdd() {
-    if (!selectedSize || outOfStock) return;
+    if (!selectedSize || needsColor || outOfStock) return;
+    const variantLabel = [selectedColor, selectedSize].filter(Boolean).join(" · ");
     add({
       productId: product.id,
       slug: product.slug,
@@ -157,11 +215,20 @@ export function ProductDetail({
       category: product.category,
       image: product.images[0]?.url ?? "",
       size: selectedSize,
+      color: selectedColor ?? undefined,
       priceCents: product.priceCents,
+    });
+    trackAddToCart({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      priceCents: product.priceCents,
+      size: selectedSize,
+      qty: 1,
     });
     haptic([8, 30, 14]);
     toast.show({
-      text: `${product.name} (${selectedSize}) adicionado`,
+      text: `${product.name} (${variantLabel}) adicionado`,
       variant: "success",
       href: "/carrinho",
       hrefLabel: "ver sacola",
@@ -177,7 +244,9 @@ export function ProductDetail({
       details: [],
     };
 
-  const buyMessage = `Olá, HYPADO! Quero comprar:\n\n*${product.name}*\nTamanho: ${
+  const buyMessage = `Olá, HYPADO! Quero comprar:\n\n*${product.name}*\n${
+    hasColors ? `Cor: ${selectedColor ?? "?"}\n` : ""
+  }Tamanho: ${
     selectedSize ?? "?"
   }\nPreço: ${formatBRL(product.priceCents)}\nLink: ${pageUrl}`;
 
@@ -247,6 +316,35 @@ export function ProductDetail({
             </span>
           </div>
 
+          {hasColors && (
+            <div className="mt-6 md:mt-10">
+              <div className="flex items-center gap-2 mb-2 md:mb-3">
+                <div className="text-[11px] md:text-xs uppercase tracking-widest">Cor</div>
+                {selectedColor && (
+                  <span className="text-[11px] md:text-xs text-muted">· {selectedColor}</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {colors.map((c) => {
+                  const isSelected = selectedColor === c;
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => pickColor(c)}
+                      className={`px-4 py-2.5 md:py-3 text-sm border rounded-md transition-all ${
+                        isSelected
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-line hover:border-foreground"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 md:mt-10">
             <div className="flex items-center justify-between mb-2 md:mb-3">
               <div className="text-[11px] md:text-xs uppercase tracking-widest">Tamanho</div>
@@ -254,8 +352,11 @@ export function ProductDetail({
                 Guia de medidas
               </button>
             </div>
+            {needsColor ? (
+              <div className="text-xs text-muted">Selecione a cor primeiro.</div>
+            ) : (
             <div className="flex flex-wrap gap-2">
-              {product.variants.map((v) => {
+              {visibleVariants.map((v) => {
                 const isSelected = selectedSize === v.size;
                 const isOut = v.stock === 0;
                 return (
@@ -274,6 +375,7 @@ export function ProductDetail({
                 );
               })}
             </div>
+            )}
             {selectedVariant && !outOfStock && (
               <div className="mt-3 text-xs text-muted">
                 <span className="inline-block w-2 h-2 bg-emerald-500 rounded-full mr-2 align-middle" />
@@ -285,10 +387,12 @@ export function ProductDetail({
           <div className="mt-6 md:mt-8 flex flex-col gap-2.5 md:gap-3">
             <button
               onClick={handleAdd}
-              disabled={!selectedSize || outOfStock}
+              disabled={needsColor || !selectedSize || outOfStock}
               className="btn-trace btn-outline w-full bg-foreground text-background py-3.5 md:py-4 text-xs md:text-sm uppercase tracking-widest hover:bg-foreground/90 disabled:bg-line disabled:text-muted disabled:cursor-not-allowed transition-colors rounded-md"
             >
-              {!selectedSize
+              {needsColor
+                ? "Selecione a cor"
+                : !selectedSize
                 ? "Selecione um tamanho"
                 : outOfStock
                 ? "Esgotado"
@@ -308,8 +412,16 @@ export function ProductDetail({
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => {
+                trackInitiateCheckout({
+                  ids: [product.id],
+                  value: product.priceCents / 100,
+                  num_items: 1,
+                });
+                trackContact("whatsapp");
+              }}
               className={`w-full bg-[#25D366] text-white py-3.5 md:py-4 text-center text-xs md:text-sm uppercase tracking-widest hover:bg-[#1FB755] transition-colors rounded-md inline-flex items-center justify-center gap-2 ${
-                !selectedSize ? "pointer-events-none opacity-40" : ""
+                needsColor || !selectedSize ? "pointer-events-none opacity-40" : ""
               }`}
             >
               <svg
@@ -332,7 +444,7 @@ export function ProductDetail({
             </div>
             <div className="border-x border-line">
               <div className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted">Trocas</div>
-              <div className="mt-1 text-[11px] md:text-xs">7 dias grátis</div>
+              <div className="mt-1 text-[11px] md:text-xs">Em 7 dias</div>
             </div>
             <div>
               <div className="text-[9px] md:text-[10px] uppercase tracking-widest text-muted">Pagamento</div>
@@ -466,7 +578,10 @@ export function ProductDetail({
 
       <MobileBuyBar
         priceCents={product.priceCents}
-        variants={product.variants}
+        variants={visibleVariants}
+        colors={colors}
+        selectedColor={selectedColor}
+        onSelectColor={pickColor}
         selectedSize={selectedSize}
         onSelectSize={setSelectedSize}
         onConfirm={handleAdd}
